@@ -1,9 +1,9 @@
 package claimshield;
-import java.time.LocalDateTime;
+
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
  */
-
+import java.time.LocalDateTime;
 public class InsuranceCard {
     private String cardNumber;
     private String cardHolderId;
