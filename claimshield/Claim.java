@@ -16,15 +16,15 @@ public class Claim {
     private String status;
 
     public Claim(String id, LocalDateTime claimDate, String insuredPersonId, String cardNumber, LocalDateTime examDate, double claimAmount, String status) {
-    this.id = id;
-    this.claimDate = claimDate;
-    this.insuredPersonId = insuredPersonId;
-    this.cardNumber = cardNumber;
-    this.examDate = examDate;
-    this.documents = new ArrayList<>();
-    this.claimAmount = claimAmount;
-    this.status = status;
-}
+        this.id = id;
+        this.claimDate = claimDate;
+        this.insuredPersonId = insuredPersonId;
+        this.cardNumber = cardNumber;
+        this.examDate = examDate;
+        this.documents = new ArrayList<>();
+        this.claimAmount = claimAmount;
+        this.status = status;
+  }
     public String getId() {
         return id;
     }
@@ -73,9 +73,9 @@ public class Claim {
         this.examDate = examDate;
     }
 
-    public void setDocuments(ArrayList<String> documents) {
-        this.documents = documents;
-    }
+    public void addDocument(String document) {
+    documents.add(document);
+   }
 
     public void setClaimAmount(double claimAmount) {
         this.claimAmount = claimAmount;
