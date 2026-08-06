@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
@@ -208,6 +209,15 @@ public class ClaimManager {
         System.out.println("Error saving customers: " + e.getMessage());
     }
     }
+    public void saveCardsToFile(String filePath) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+            for (InsuranceCard card : cards) {
+                writer.println(card.toFileString());
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving cards: " + e.getMessage());
+        }
+    }
     public void loadCustomersFromFile(String filePath) {
     try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
         String line;
@@ -229,6 +239,29 @@ public class ClaimManager {
         }
     } catch (IOException e) {
         System.out.println("Error loading customers: " + e.getMessage());
+    }
+    }
+    public void loadCardsFromFile(String filePath) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                String[] parts = line.split(",");
+                String cardNumber = parts[0];
+                String cardHolderId = parts[1];
+                String policyOwnerId = parts[2];
+                LocalDateTime expirationDate = LocalDateTime.parse(parts[3]);
+                InsuranceCard card = new InsuranceCard(cardNumber, cardHolderId, policyOwnerId, expirationDate);
+                cards.add(card);
+            } catch (Exception e) {
+                System.out.println("Skipping invalid card line: " + line);
+            }
+        }
+    } catch (IOException e) {
+        System.out.println("Error loading cards: " + e.getMessage());
     }
     }
 }
