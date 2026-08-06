@@ -219,50 +219,64 @@ public class ClaimManager {
         }
     }
     public void loadCustomersFromFile(String filePath) {
-    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.trim().isEmpty()) {
-                continue;
-            }
-            try {
+        customers.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
                 String[] parts = line.split(",");
-                String id = parts[0];
-                String fullName = parts[1];
-                String customerType = parts[2];
-                String parentId = parts[3].equals("null") ? null : parts[3];
-                Customer customer = new Customer(id, fullName, customerType, parentId);
-                customers.add(customer);
+                if (parts.length != 4) {
+                    System.out.println("Skipping invalid customer line: " + line);
+                    continue;
+                }
+                try {
+                    String id = parts[0].trim();
+                    String fullName = parts[1].trim();
+                    String customerType = parts[2].trim();
+                    String parentId = parts[3].trim().equals("null") ? null : parts[3].trim();
+                    Customer customer = new Customer(id, fullName, customerType, parentId);
+                    if (!addCustomer(customer)) {
+                        System.out.println("Skipping invalid customer line: " + line);
+                    }
             } catch (Exception e) {
-                System.out.println("Skipping invalid customer line: " + line);
+                System.out.println("Skipping invalid customer line: " + line + " (" + e.getMessage() + ")");
             }
         }
     } catch (IOException e) {
-        System.out.println("Error loading customers: " + e.getMessage());
-    }
+            System.out.println("Error loading customers: " + e.getMessage());
+        }
     }
     public void loadCardsFromFile(String filePath) {
-    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.trim().isEmpty()) {
-                continue;
-            }
-            try {
+        cards.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
                 String[] parts = line.split(",");
-                String cardNumber = parts[0];
-                String cardHolderId = parts[1];
-                String policyOwnerId = parts[2];
-                LocalDateTime expirationDate = LocalDateTime.parse(parts[3]);
-                InsuranceCard card = new InsuranceCard(cardNumber, cardHolderId, policyOwnerId, expirationDate);
-                cards.add(card);
+                if (parts.length != 4) {
+                    System.out.println("Skipping invalid card line: " + line);
+                    continue;
+                }
+                try {
+                    String cardNumber = parts[0].trim();
+                    String cardHolderId = parts[1].trim();
+                    String policyOwnerId = parts[2].trim();
+                    LocalDateTime expirationDate = LocalDateTime.parse(parts[3].trim());
+                    InsuranceCard card = new InsuranceCard(cardNumber, cardHolderId, policyOwnerId, expirationDate);
+                    if (!addInsuranceCard(card)) {
+                        System.out.println("Skipping invalid card line: " + line);
+                    }
             } catch (Exception e) {
-                System.out.println("Skipping invalid card line: " + line);
+                System.out.println("Skipping invalid card line: " + line + " (" + e.getMessage() + ")");
             }
         }
     } catch (IOException e) {
-        System.out.println("Error loading cards: " + e.getMessage());
-    }
+            System.out.println("Error loading cards: " + e.getMessage());
+        }
     }
     public void saveClaimsToFile(String filePath) {
     try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
@@ -275,35 +289,43 @@ public class ClaimManager {
 }
 
 public void loadClaimsFromFile(String filePath) {
-    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.trim().isEmpty()) {
-                continue;
-            }
-            try {
-                String[] parts = line.split(",", -1);
-                String id = parts[0];
-                LocalDateTime claimDate = LocalDateTime.parse(parts[1]);
-                String insuredPersonId = parts[2];
-                String cardNumber = parts[3];
-                LocalDateTime examDate = LocalDateTime.parse(parts[4]);
-                double claimAmount = Double.parseDouble(parts[5]);
-                String status = parts[6];
-                Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, status);
-                if (parts.length > 7 && !parts[7].isEmpty()) {
-                    String[] docs = parts[7].split("\\|");
-                    for (String doc : docs) {
-                        claim.addDocument(doc);
-                    }
+        claims.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) {
+                    continue;
                 }
-                claims.add(claim);
-            } catch (Exception e) {
-                System.out.println("Skipping invalid claim line: " + line);
+                String[] parts = line.split(",", -1);
+                if (parts.length < 7) {
+                    System.out.println("Skipping invalid claim line: " + line);
+                    continue;
+                }
+                try {
+                    String id = parts[0].trim();
+                    LocalDateTime claimDate = LocalDateTime.parse(parts[1].trim());
+                    String insuredPersonId = parts[2].trim();
+                    String cardNumber = parts[3].trim();
+                    LocalDateTime examDate = LocalDateTime.parse(parts[4].trim());
+                    double claimAmount = Double.parseDouble(parts[5].trim());
+                    String status = parts[6].trim();
+                    Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, status);
+                    if (!addClaim(claim)) {
+                        System.out.println("Skipping invalid claim line: " + line);
+                        continue;
+                    }
+                    if (parts.length > 7 && !parts[7].trim().isEmpty()) {
+                        String[] docs = parts[7].trim().split("\\|");
+                        for (String doc : docs) {
+                            claim.addDocument(doc.trim());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("Skipping invalid claim line: " + line + " (" + e.getMessage() + ")");
+                }
             }
+        } catch (IOException e) {
+            System.out.println("Error loading claims: " + e.getMessage());
         }
-    } catch (IOException e) {
-        System.out.println("Error loading claims: " + e.getMessage());
-    }
     }
 }
