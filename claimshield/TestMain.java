@@ -83,5 +83,9 @@ public class TestMain {
         java.util.ArrayList<Customer> list = manager.getAllCustomers();
         list.clear();
         System.out.println("Manager customers after external clear(): " + manager.getAllCustomers().size());
+
+        System.out.println("\n===== FILE SAVE TEST =====");
+        manager.saveCustomersToFile("data/customers.txt");
+        System.out.println("Saved customers to file. Check data/customers.txt");
     }
 }

@@ -1,4 +1,7 @@
 package claimshield;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 /**
@@ -194,4 +197,13 @@ public class ClaimManager {
         claims.remove(claim);
         return true;
     }
+    public void saveCustomersToFile(String filePath) {
+    try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+        for (Customer customer : customers) {
+            writer.println(customer.toFileString());
+        }
+    } catch (IOException e) {
+        System.out.println("Error saving customers: " + e.getMessage());
+    }
+}
 }
