@@ -1,4 +1,6 @@
 package claimshield;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -205,5 +207,28 @@ public class ClaimManager {
     } catch (IOException e) {
         System.out.println("Error saving customers: " + e.getMessage());
     }
-}
+    }
+    public void loadCustomersFromFile(String filePath) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                String[] parts = line.split(",");
+                String id = parts[0];
+                String fullName = parts[1];
+                String customerType = parts[2];
+                String parentId = parts[3].equals("null") ? null : parts[3];
+                Customer customer = new Customer(id, fullName, customerType, parentId);
+                customers.add(customer);
+            } catch (Exception e) {
+                System.out.println("Skipping invalid customer line: " + line);
+            }
+        }
+    } catch (IOException e) {
+        System.out.println("Error loading customers: " + e.getMessage());
+    }
+    }
 }

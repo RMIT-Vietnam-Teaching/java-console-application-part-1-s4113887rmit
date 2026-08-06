@@ -87,5 +87,13 @@ public class TestMain {
         System.out.println("\n===== FILE SAVE TEST =====");
         manager.saveCustomersToFile("data/customers.txt");
         System.out.println("Saved customers to file. Check data/customers.txt");
+        
+        System.out.println("\n===== FILE LOAD TEST =====");
+        ClaimManager loadedManager = new ClaimManager();
+        loadedManager.loadCustomersFromFile("data/customers.txt");
+        System.out.println("Loaded customers count: " + loadedManager.getAllCustomers().size());
+        for (Customer c : loadedManager.getAllCustomers()) {
+            System.out.println(c);
+        }
     }
 }
