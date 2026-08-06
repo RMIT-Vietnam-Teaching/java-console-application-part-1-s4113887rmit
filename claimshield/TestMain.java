@@ -117,5 +117,18 @@ public class TestMain {
         for (Claim c : loadedClaimManager.getAllClaims()) {
             System.out.println(c);
         }
-    }
+
+        System.out.println("\n===== Sample data load test =====");
+
+        ClaimManager sampleManager = new ClaimManager();
+
+        sampleManager.loadCustomersFromFile("data/customers.txt");
+        sampleManager.loadCardsFromFile("data/cards.txt");
+        sampleManager.loadClaimsFromFile("data/claims.txt");
+
+        System.out.println("Customers: " + sampleManager.getAllCustomers().size());
+        System.out.println("Cards: " + sampleManager.getAllCards().size());
+        System.out.println("Claims: " + sampleManager.getAllClaims().size());
+        
+    }       
 }

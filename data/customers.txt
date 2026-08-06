@@ -1,1 +1,15 @@
-c-1000001,Nguyen Van A,PolicyHolder,null
+c-1000001,Nguyen Ngoc Quang Dang,PolicyHolder,null
+c-1000002,Monkey D. Luffy,PolicyHolder,null
+c-1000003,Lionel Messi,PolicyHolder,null
+c-1000004,Rodrigo Hernandez Cascante,PolicyHolder,null
+c-1000005,Natsu Dragneel,PolicyHolder,null
+c-1000006,Lamine Yamal,Dependent,c-1000001
+c-1000007,Pedro Porro,Dependent,c-1000001
+c-1000008,Kevin De Bruyne,Dependent,c-1000002
+c-1000009,Iori Kitahara,Dependent,c-1000002
+c-1000010,Sakata Gintoki,Dependent,c-1000003
+c-1000011,Roronoa Zoro,Dependent,c-1000003
+c-1000012,Tony Tony Chopper,Dependent,c-1000004
+c-1000013,Kotegawa Chisa,Dependent,c-1000004
+c-1000014,Vinsmoke Sanji,Dependent,c-1000005
+c-1000015,Nami,Dependent,c-1000005
