@@ -106,5 +106,16 @@ public class TestMain {
         for (InsuranceCard c : loadedCardManager.getAllCards()) {
             System.out.println(c);
         }
+
+        System.out.println("\n===== Claim file save/load test =====");
+        manager.saveClaimsToFile("data/claims.txt");
+        System.out.println("Saved claims to file. Check data/claims.txt");
+
+        ClaimManager loadedClaimManager = new ClaimManager();
+        loadedClaimManager.loadClaimsFromFile("data/claims.txt");
+        System.out.println("Loaded claims count: " + loadedClaimManager.getAllClaims().size());
+        for (Claim c : loadedClaimManager.getAllClaims()) {
+            System.out.println(c);
+        }
     }
 }

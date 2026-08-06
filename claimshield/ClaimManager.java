@@ -264,4 +264,46 @@ public class ClaimManager {
         System.out.println("Error loading cards: " + e.getMessage());
     }
     }
+    public void saveClaimsToFile(String filePath) {
+    try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+        for (Claim claim : claims) {
+            writer.println(claim.toFileString());
+        }
+    } catch (IOException e) {
+        System.out.println("Error saving claims: " + e.getMessage());
+    }
+}
+
+public void loadClaimsFromFile(String filePath) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                String[] parts = line.split(",", -1);
+                String id = parts[0];
+                LocalDateTime claimDate = LocalDateTime.parse(parts[1]);
+                String insuredPersonId = parts[2];
+                String cardNumber = parts[3];
+                LocalDateTime examDate = LocalDateTime.parse(parts[4]);
+                double claimAmount = Double.parseDouble(parts[5]);
+                String status = parts[6];
+                Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, status);
+                if (parts.length > 7 && !parts[7].isEmpty()) {
+                    String[] docs = parts[7].split("\\|");
+                    for (String doc : docs) {
+                        claim.addDocument(doc);
+                    }
+                }
+                claims.add(claim);
+            } catch (Exception e) {
+                System.out.println("Skipping invalid claim line: " + line);
+            }
+        }
+    } catch (IOException e) {
+        System.out.println("Error loading claims: " + e.getMessage());
+    }
+    }
 }
