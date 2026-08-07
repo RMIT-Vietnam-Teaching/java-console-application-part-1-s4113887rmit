@@ -84,10 +84,6 @@ public class TestMain {
         list.clear();
         System.out.println("Manager customers after external clear(): " + manager.getAllCustomers().size());
 
-        System.out.println("\n===== FILE SAVE TEST =====");
-        manager.saveCustomersToFile("data/customers.txt");
-        System.out.println("Saved customers to file. Check data/customers.txt");
-        
         System.out.println("\n===== FILE LOAD TEST =====");
         ClaimManager loadedManager = new ClaimManager();
         loadedManager.loadCustomersFromFile("data/customers.txt");
@@ -96,20 +92,12 @@ public class TestMain {
             System.out.println(c);
         }
 
-        System.out.println("\n===== Card file save/load test =====");
-        manager.saveCardsToFile("data/cards.txt");
-        System.out.println("Saved cards to file. Check data/cards.txt");
-
         ClaimManager loadedCardManager = new ClaimManager();
         loadedCardManager.loadCardsFromFile("data/cards.txt");
         System.out.println("Loaded cards count: " + loadedCardManager.getAllCards().size());
         for (InsuranceCard c : loadedCardManager.getAllCards()) {
             System.out.println(c);
         }
-
-        System.out.println("\n===== Claim file save/load test =====");
-        manager.saveClaimsToFile("data/claims.txt");
-        System.out.println("Saved claims to file. Check data/claims.txt");
 
         ClaimManager loadedClaimManager = new ClaimManager();
         loadedClaimManager.loadClaimsFromFile("data/claims.txt");
