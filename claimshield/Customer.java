@@ -1,5 +1,8 @@
 package claimshield;
 /**
+ * Represents a customer in the ClaimShield system, either a
+ * PolicyHolder or a Dependent linked to a PolicyHolder.
+ *
  * @author Nguyen Ngoc Quang Dang - S4113887
  */
 public class Customer {

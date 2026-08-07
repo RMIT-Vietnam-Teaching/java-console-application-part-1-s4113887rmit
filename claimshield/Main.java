@@ -4,6 +4,10 @@ import java.util.Scanner;
 
 
 /**
+ * Console-based entry point for the ClaimShield system, providing
+ * a menu-driven interface for administrators to manage customers,
+ * insurance cards, and claims.
+ *
  * @author Nguyen Ngoc Quang Dang - S4113887
  */
 public class Main {
@@ -52,7 +56,7 @@ public class Main {
 
         sc.close();
     }
-
+// Displays the customer management submenu and routes user choices.
     private static void customerMenu(ClaimManager manager, Scanner sc) {
         boolean back = false;
         while (!back) {
@@ -82,7 +86,7 @@ public class Main {
             }
         }
     }
-
+// Prints all customers currently in the system.
     private static void viewAllCustomers(ClaimManager manager) {
         System.out.println("\n----- All Customers -----");
         if (manager.getAllCustomers().isEmpty()) {
@@ -93,7 +97,7 @@ public class Main {
             System.out.println(c);
         }
     }
-
+// Prompts for customer details and attempts to add a new customer.
     private static void addCustomerFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Add Customer -----");
 
@@ -121,7 +125,7 @@ public class Main {
             System.out.println("Failed to add customer. Please check ID format, customer type, and parent reference.");
         }
     }
-
+// Prompts for a customer ID and attempts to remove that customer.
     private static void removeCustomerFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Remove Customer -----");
         System.out.print("Enter Customer ID to remove: ");
@@ -134,7 +138,7 @@ public class Main {
             System.out.println("Customer not found.");
         }
     }
-
+// Displays the insurance card management submenu and routes user choices.
     private static void cardMenu(ClaimManager manager, Scanner sc) {
         boolean back = false;
         while (!back) {
@@ -160,7 +164,7 @@ public class Main {
             }
         }
     }
-
+// Prints all insurance cards currently in the system.
     private static void viewAllCards(ClaimManager manager) {
         System.out.println("\n----- All Insurance Cards -----");
         if (manager.getAllCards().isEmpty()) {
@@ -171,7 +175,7 @@ public class Main {
             System.out.println(c);
         }
     }
-
+// Prompts for card details and attempts to register a new insurance card.
     private static void addCardFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Register New Card -----");
 
@@ -204,7 +208,7 @@ public class Main {
             System.out.println("Failed to register card. Please check card number, holder ID, and owner ID.");
         }
     }
-
+// Displays the claim management submenu and routes user choices.
     private static void claimMenu(ClaimManager manager, Scanner sc) {
         boolean back = false;
         while (!back) {
@@ -238,7 +242,7 @@ public class Main {
             }
         }
     }
-
+// Prints all claims currently in the system.
     private static void viewAllClaims(ClaimManager manager) {
         System.out.println("\n----- All Claims -----");
         if (manager.getAllClaims().isEmpty()) {
@@ -249,7 +253,7 @@ public class Main {
             System.out.println(c);
         }
     }
-
+// Prompts for claim details and attempts to create a new claim with status "New".
     private static void addClaimFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Create New Claim -----");
 
@@ -298,7 +302,7 @@ public class Main {
             System.out.println("Failed to create claim. Please check ID, references, dates, and amount.");
         }
     }
-
+// Prompts for a claim ID and document name, then attempts to add the document.
     private static void addDocumentFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Add Document to Claim -----");
 
@@ -315,7 +319,7 @@ public class Main {
             System.out.println("Failed to add document. Please check claim ID and document name format.");
         }
     }
-
+// Prompts for a claim ID and new status, then attempts to update the claim's status.
     private static void updateStatusFlow(ClaimManager manager, Scanner sc) {
         System.out.println("\n----- Update Claim Status -----");
 

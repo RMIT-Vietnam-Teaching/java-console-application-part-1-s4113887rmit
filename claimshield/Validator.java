@@ -2,42 +2,85 @@ package claimshield;
 import java.util.regex.Pattern;
 
 /**
+ * Provides static validation methods for checking the format and
+ * business rules of IDs, amounts, dates, and other fields used
+ * throughout the ClaimShield system.
+ *
  * @author Nguyen Ngoc Quang Dang - S4113887
  */
 
 public class Validator {
+/**
+ * Checks if a customer ID matches the format c-XXXXXXX (7 digits).
+ * @param id the ID to validate
+ * @return true if valid, false otherwise
+ */    
     public static boolean isValidCustomerId(String id) {
     if (id == null) return false;
     return id.matches("c-\\d{7}");
     }
-
+/**
+ * Checks if a claim ID matches the format f-XXXXXXXXXX (10 digits).
+ * @param id the ID to validate
+ * @return true if valid, false otherwise
+ */
     public static boolean isValidClaimId(String id) {
     if (id == null) return false;
     return id.matches("f-\\d{10}");
     }
-
+/**
+ * Checks if a card number consists of exactly 10 digits.
+ * @param cardNumber the card number to validate
+ * @return true if valid, false otherwise
+ */
     public static boolean isValidCardNumber(String cardNumber) {
     if (cardNumber == null) return false;
     return cardNumber.matches("\\d{10}");
     }
+/**
+ * Checks if an amount is strictly greater than zero.
+ * @param amount the amount to validate
+ * @return true if positive, false otherwise
+ */    
     public static boolean isPositiveAmount(double amount) {
         return amount > 0;
     }
+/**
+ * Checks if a document file name follows the required
+ * ClaimId_CardNumber_Name.pdf format.
+ * @param fileName the document name to validate
+ * @param claimId the claim ID that should prefix the name
+ * @param cardNumber the card number that should follow the claim ID
+ * @return true if valid, false otherwise
+ */    
     public static boolean isValidDocumentName(String fileName, String claimId, String cardNumber) {
     if (fileName == null) return false;
     String pattern = Pattern.quote(claimId + "_" + cardNumber + "_") + ".+\\.pdf";
     return fileName.matches(pattern);
     }
+/**
+ * Checks if a customer type is either "PolicyHolder" or "Dependent".
+ * @param type the customer type to validate
+ * @return true if valid, false otherwise
+ */    
     public static boolean isValidCustomerType(String type) {
     if (type == null) return false;
     return type.equals("PolicyHolder") || type.equals("Dependent");
     }
-
+/**
+ * Checks if a status is one of "New", "Processing", or "Done".
+ * @param status the status to validate
+ * @return true if valid, false otherwise
+ */
     public static boolean isValidStatus(String status) {
     if (status == null) return false;
     return status.equals("New") || status.equals("Processing") || status.equals("Done");
     }
-
+/**
+ * Checks if a customer is a PolicyHolder (and not null).
+ * @param customer the Customer to check
+ * @return true if the customer is a non null PolicyHolder
+ */
     public static boolean isPolicyHolder(Customer customer) {
     return customer != null && customer.getCustomerType().equals("PolicyHolder");
     }
