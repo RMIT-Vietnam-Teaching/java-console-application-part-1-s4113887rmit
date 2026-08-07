@@ -13,3 +13,5 @@ c-1000012,Tony Tony Chopper,Dependent,c-1000004
 c-1000013,Kotegawa Chisa,Dependent,c-1000004
 c-1000014,Vinsmoke Sanji,Dependent,c-1000005
 c-1000015,Nami,Dependent,c-1000005
+c-2000001,Test User,PolicyHolder,null
+c-1000000,Test user demo,PolicyHolder,null

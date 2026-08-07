@@ -1,14 +1,17 @@
 package claimshield;
+
+/**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ */
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+
 /**
  * Represents a medical claim submitted for reimbursement, including
  * the insured person, related card, claim dates, amount, status,
  * and supporting documents.
- *
- * @author Nguyen Ngoc Quang Dang - S4113887
  */
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-
 public class Claim {
     private String id;
     private LocalDateTime claimDate;
@@ -19,7 +22,15 @@ public class Claim {
     private double claimAmount;
     private String status;
 
-    public Claim(String id, LocalDateTime claimDate, String insuredPersonId, String cardNumber, LocalDateTime examDate, double claimAmount, String status) {
+    public Claim(
+            String id,
+            LocalDateTime claimDate,
+            String insuredPersonId,
+            String cardNumber,
+            LocalDateTime examDate,
+            double claimAmount,
+            String status
+    ) {
         this.id = id;
         this.claimDate = claimDate;
         this.insuredPersonId = insuredPersonId;
@@ -28,7 +39,8 @@ public class Claim {
         this.documents = new ArrayList<>();
         this.claimAmount = claimAmount;
         this.status = status;
-  }
+    }
+
     public String getId() {
         return id;
     }
@@ -50,7 +62,7 @@ public class Claim {
     }
 
     public ArrayList<String> getDocuments() {
-        return documents;
+        return new ArrayList<>(documents);
     }
 
     public double getClaimAmount() {
@@ -78,8 +90,8 @@ public class Claim {
     }
 
     public void addDocument(String document) {
-    documents.add(document);
-   }
+        documents.add(document);
+    }
 
     public void setClaimAmount(double claimAmount) {
         this.claimAmount = claimAmount;
@@ -90,13 +102,28 @@ public class Claim {
     }
 
     public String toFileString() {
-    String documentsStr = String.join("|", documents);
-    return id + "," + claimDate + "," + insuredPersonId + "," + cardNumber + "," 
-         + examDate + "," + claimAmount + "," + status + "," + documentsStr;
+        String documentsStr = String.join("|", documents);
+
+        return id + ","
+                + claimDate + ","
+                + insuredPersonId + ","
+                + cardNumber + ","
+                + examDate + ","
+                + claimAmount + ","
+                + status + ","
+                + documentsStr;
     }
 
     @Override
     public String toString() {
-        return "Claim{id=" + id + ", claimDate=" + claimDate + ", insuredPersonId=" + insuredPersonId + ", cardNumber=" + cardNumber + ", examDate=" + examDate + ", documents=" + documents + ", claimAmount=" + claimAmount + ", status=" + status + "}";
+        return "Claim{id=" + id
+                + ", claimDate=" + claimDate
+                + ", insuredPersonId=" + insuredPersonId
+                + ", cardNumber=" + cardNumber
+                + ", examDate=" + examDate
+                + ", documents=" + documents
+                + ", claimAmount=" + claimAmount
+                + ", status=" + status
+                + "}";
     }
 }
