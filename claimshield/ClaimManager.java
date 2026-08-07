@@ -8,6 +8,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
+ * Manages the core data operations for the ClaimShield system,
+ * including CRUD operations, validation, and file persistence
+ * for customers, insurance cards, and claims.
+ *
  * @author Nguyen Ngoc Quang Dang - S4113887
  */
 public class ClaimManager {
@@ -20,6 +24,11 @@ public class ClaimManager {
         this.cards = new ArrayList<>();
         this.claims = new ArrayList<>();
     }
+/**
+ * Finds a customer by their unique ID.
+ * @param id the customer ID to search for
+ * @return the matching Customer, or null if not found
+ */
     public Customer getCustomerById(String id) {
     for (Customer c : customers) {
         if (c.getId().equals(id)) {
@@ -28,7 +37,11 @@ public class ClaimManager {
     }
     return null;
     }
-
+/**
+ * Finds an insurance card by its card number.
+ * @param cardNumber the card number to search for
+ * @return the matching InsuranceCard, or null if not found
+ */
     public InsuranceCard getCardByNumber(String cardNumber) {
     for (InsuranceCard card : cards) {
         if (card.getCardNumber().equals(cardNumber)) {
@@ -37,6 +50,11 @@ public class ClaimManager {
     }
     return null;
     }
+/**
+ * Finds a claim by its unique ID.
+ * @param id the claim ID to search for
+ * @return the matching Claim, or null if not found
+ */    
     public Claim getClaimById(String id) {
     for (Claim claim : claims) {
         if (claim.getId().equals(id)) {
@@ -45,6 +63,12 @@ public class ClaimManager {
     }
     return null;
     }
+/**
+ * Adds a new customer after validating the ID format, customer type,
+ * and parent-child relationship for Dependents.
+ * @param customer the Customer to add
+ * @return true if added successfully, false if validation fails
+ */    
     public boolean addCustomer(Customer customer) {
     if (customer == null) {
         return false;
@@ -70,7 +94,13 @@ public class ClaimManager {
     customers.add(customer);
     return true;
    }
-
+/**
+ * Registers a new insurance card after validating the card number,
+ * confirming the card holder exists, and confirming the policy owner
+ * is a PolicyHolder.
+ * @param card the InsuranceCard to register
+ * @return true if added successfully, false if validation fails
+ */
     public boolean addInsuranceCard(InsuranceCard card) {
     if (card == null) {
         return false;
@@ -91,7 +121,13 @@ public class ClaimManager {
     cards.add(card);
     return true;
     }   
-
+/**
+ * Creates a new claim after validating the ID format, referenced
+ * customer and card, claim amount, status, and the exam/claim/expiration
+ * date relationships.
+ * @param claim the Claim to add
+ * @return true if added successfully, false if validation fails
+ */
     public boolean addClaim(Claim claim) {
     if (claim == null) {
         return false;
@@ -124,6 +160,13 @@ public class ClaimManager {
     claims.add(claim);
         return true;
     }
+/**
+ * Updates a claim's status, enforcing that status can only move
+ * forward (New -> Processing -> Done), never backward.
+ * @param claimId the ID of the claim to update
+ * @param newStatus the target status
+ * @return true if updated successfully, false if invalid or backward
+ */    
     public boolean updateClaimStatus(String claimId, String newStatus) {
     Claim claim = getClaimById(claimId);
     if (claim == null) {
@@ -140,7 +183,13 @@ public class ClaimManager {
     claim.setStatus(newStatus);
     return true;
    }
-
+/**
+ * Adds a document to a claim after validating the document name
+ * follows the required ClaimId_CardNumber_Name.pdf format.
+ * @param claimId the ID of the claim
+ * @param documentName the document file name to add
+ * @return true if added successfully, false if validation fails
+ */
     public boolean addDocumentToClaim(String claimId, String documentName) {
     Claim claim = getClaimById(claimId);
     if (claim == null) {
@@ -162,18 +211,32 @@ public class ClaimManager {
         default: return -1;
     }
     }
+/**
+ * Returns a copy of all customers in the system.
+ * @return an ArrayList containing all Customer records
+ */    
     public ArrayList<Customer> getAllCustomers() {
         return new ArrayList<>(customers);
     }
-
+/**
+ * Returns a copy of all insurance cards in the system.
+ * @return an ArrayList containing all InsuranceCard records
+ */
     public ArrayList<InsuranceCard> getAllCards() {
         return new ArrayList<>(cards);
     }
-
+/**
+ * Returns a copy of all claims in the system.
+ * @return an ArrayList containing all Claim records
+ */
     public ArrayList<Claim> getAllClaims() {
         return new ArrayList<>(claims);
     }
-
+    /**
+* Removes a customer from the system by ID.
+ * @param id the customer ID to remove
+ * @return true if removed successfully, false if not found
+ */
     public boolean deleteCustomer(String id) {
         Customer customer = getCustomerById(id);
         if (customer == null) {
@@ -182,7 +245,11 @@ public class ClaimManager {
         customers.remove(customer);
         return true;
     }
-
+/**
+ * Removes an insurance card from the system by card number.
+ * @param cardNumber the card number to remove
+ * @return true if removed successfully, false if not found
+ */
     public boolean deleteInsuranceCard(String cardNumber) {
         InsuranceCard card = getCardByNumber(cardNumber);
         if (card == null) {
@@ -191,7 +258,11 @@ public class ClaimManager {
         cards.remove(card);
         return true;
     }
-
+/**
+ * Removes a claim from the system by ID.
+ * @param id the claim ID to remove
+ * @return true if removed successfully, false if not found
+ */
     public boolean deleteClaim(String id) {
         Claim claim = getClaimById(id);
         if (claim == null) {
@@ -200,6 +271,10 @@ public class ClaimManager {
         claims.remove(claim);
         return true;
     }
+/**
+ * Saves all customers to the specified file in CSV format.
+ * @param filePath the destination file path
+ */    
     public void saveCustomersToFile(String filePath) {
     try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
         for (Customer customer : customers) {
@@ -209,6 +284,10 @@ public class ClaimManager {
         System.out.println("Error saving customers: " + e.getMessage());
     }
     }
+/**
+ * Saves all insurance cards to the specified file in CSV format.
+ * @param filePath the destination file path
+ */
     public void saveCardsToFile(String filePath) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
             for (InsuranceCard card : cards) {
@@ -218,6 +297,11 @@ public class ClaimManager {
             System.out.println("Error saving cards: " + e.getMessage());
         }
     }
+/**
+ * Loads customers from the specified file, skipping and reporting
+ * any invalid or malformed lines without stopping the program.
+ * @param filePath the source file path
+ */    
     public void loadCustomersFromFile(String filePath) {
         customers.clear();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
@@ -248,6 +332,11 @@ public class ClaimManager {
             System.out.println("Error loading customers: " + e.getMessage());
         }
     }
+/**
+ * Loads insurance cards from the specified file, skipping and reporting
+ * any invalid or malformed lines without stopping the program.
+ * @param filePath the source file path
+ */
     public void loadCardsFromFile(String filePath) {
         cards.clear();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
@@ -278,6 +367,10 @@ public class ClaimManager {
             System.out.println("Error loading cards: " + e.getMessage());
         }
     }
+/**
+ * Saves all claims to the specified file in CSV format.
+ * @param filePath the destination file path
+ */
     public void saveClaimsToFile(String filePath) {
     try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
         for (Claim claim : claims) {
@@ -287,7 +380,11 @@ public class ClaimManager {
         System.out.println("Error saving claims: " + e.getMessage());
     }
 }
-
+/**
+ * Loads claims from the specified file, skipping and reporting
+ * any invalid or malformed lines without stopping the program.
+ * @param filePath the source file path
+ */
 public void loadClaimsFromFile(String filePath) {
         claims.clear();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
