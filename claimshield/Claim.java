@@ -20,7 +20,26 @@ public class Claim {
     private LocalDateTime examDate;
     private ArrayList<String> documents;
     private double claimAmount;
-    private String status;
+    private ClaimStatus status;
+
+    public Claim(
+            String id,
+            LocalDateTime claimDate,
+            String insuredPersonId,
+            String cardNumber,
+            LocalDateTime examDate,
+            double claimAmount,
+            ClaimStatus status
+    ) {
+        this.id = id;
+        this.claimDate = claimDate;
+        this.insuredPersonId = insuredPersonId;
+        this.cardNumber = cardNumber;
+        this.examDate = examDate;
+        this.documents = new ArrayList<>();
+        this.claimAmount = claimAmount;
+        this.status = status;
+    }
 
     public Claim(
             String id,
@@ -31,14 +50,7 @@ public class Claim {
             double claimAmount,
             String status
     ) {
-        this.id = id;
-        this.claimDate = claimDate;
-        this.insuredPersonId = insuredPersonId;
-        this.cardNumber = cardNumber;
-        this.examDate = examDate;
-        this.documents = new ArrayList<>();
-        this.claimAmount = claimAmount;
-        this.status = status;
+        this(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, ClaimStatus.fromString(status));
     }
 
     public String getId() {
@@ -69,7 +81,7 @@ public class Claim {
         return claimAmount;
     }
 
-    public String getStatus() {
+    public ClaimStatus getStatus() {
         return status;
     }
 
@@ -97,8 +109,12 @@ public class Claim {
         this.claimAmount = claimAmount;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ClaimStatus status) {
         this.status = status;
+    }
+
+    public void setStatus(String status) {
+        this.status = ClaimStatus.fromString(status);
     }
 
     public String toFileString() {
@@ -110,7 +126,7 @@ public class Claim {
                 + cardNumber + ","
                 + examDate + ","
                 + claimAmount + ","
-                + status + ","
+                + (status != null ? status.name() : "") + ","
                 + documentsStr;
     }
 

@@ -28,7 +28,7 @@ public class ClaimManager {
 
     /**
      * Finds a customer by their unique ID.
-     * 
+     *
      * @param id the customer ID to search for
      * @return the matching Customer, or null if not found
      */
@@ -44,7 +44,7 @@ public class ClaimManager {
 
     /**
      * Finds an insurance card by its card number.
-     * 
+     *
      * @param cardNumber the card number to search for
      * @return the matching InsuranceCard, or null if not found
      */
@@ -59,7 +59,7 @@ public class ClaimManager {
 
     /**
      * Finds a claim by its unique ID.
-     * 
+     *
      * @param id the claim ID to search for
      * @return the matching Claim, or null if not found
      */
@@ -75,7 +75,7 @@ public class ClaimManager {
     /**
      * Adds a new customer after validating the ID format, customer type,
      * and parent-child relationship for Dependents.
-     * 
+     *
      * @param customer the Customer to add
      * @return true if added successfully, false if validation fails
      */
@@ -109,7 +109,7 @@ public class ClaimManager {
      * Registers a new insurance card after validating the card number,
      * confirming the card holder exists, and confirming the policy owner
      * is a PolicyHolder.
-     * 
+     *
      * @param card the InsuranceCard to register
      * @return true if added successfully, false if validation fails
      */
@@ -138,7 +138,7 @@ public class ClaimManager {
      * Creates a new claim after validating the ID format, referenced
      * customer and card, claim amount, status, and the exam/claim/expiration
      * date relationships.
-     * 
+     *
      * @param claim the Claim to add
      * @return true if added successfully, false if validation fails
      */
@@ -178,18 +178,15 @@ public class ClaimManager {
 
     /**
      * Updates a claim's status, enforcing that status can only move
-     * forward (New -> Processing -> Done), never backward.
-     * 
+     * forward (NEW -> PROCESSING -> DONE), never backward.
+     *
      * @param claimId   the ID of the claim to update
      * @param newStatus the target status
      * @return true if updated successfully, false if invalid or backward
      */
-    public boolean updateClaimStatus(String claimId, String newStatus) {
+    public boolean updateClaimStatus(String claimId, ClaimStatus newStatus) {
         Claim claim = getClaimById(claimId);
-        if (claim == null) {
-            return false;
-        }
-        if (!Validator.isValidStatus(newStatus)) {
+        if (claim == null || newStatus == null) {
             return false;
         }
         int currentRank = statusRank(claim.getStatus());
@@ -202,9 +199,24 @@ public class ClaimManager {
     }
 
     /**
+     * Updates a claim's status using a string representation.
+     *
+     * @param claimId   the ID of the claim to update
+     * @param newStatus the target status string
+     * @return true if updated successfully, false if invalid or backward
+     */
+    public boolean updateClaimStatus(String claimId, String newStatus) {
+        ClaimStatus status = ClaimStatus.fromString(newStatus);
+        if (status == null) {
+            return false;
+        }
+        return updateClaimStatus(claimId, status);
+    }
+
+    /**
      * Adds a document to a claim after validating the document name
      * follows the required ClaimId_CardNumber_Name.pdf format.
-     * 
+     *
      * @param claimId      the ID of the claim
      * @param documentName the document file name to add
      * @return true if added successfully, false if validation fails
@@ -221,26 +233,30 @@ public class ClaimManager {
         return true;
     }
 
-    private int statusRank(String status) {
+    private int statusRank(ClaimStatus status) {
         if (status == null) {
             return -1;
         }
 
         switch (status) {
-            case "New":
+            case NEW:
                 return 0;
-            case "Processing":
+            case PROCESSING:
                 return 1;
-            case "Done":
+            case DONE:
                 return 2;
             default:
                 return -1;
         }
     }
 
+    private int statusRank(String status) {
+        return statusRank(ClaimStatus.fromString(status));
+    }
+
     /**
      * Returns a copy of all customers in the system.
-     * 
+     *
      * @return an ArrayList containing all Customer records
      */
     public ArrayList<Customer> getAllCustomers() {
@@ -249,7 +265,7 @@ public class ClaimManager {
 
     /**
      * Returns a copy of all insurance cards in the system.
-     * 
+     *
      * @return an ArrayList containing all InsuranceCard records
      */
     public ArrayList<InsuranceCard> getAllCards() {
@@ -258,7 +274,7 @@ public class ClaimManager {
 
     /**
      * Returns a copy of all claims in the system.
-     * 
+     *
      * @return an ArrayList containing all Claim records
      */
     public ArrayList<Claim> getAllClaims() {
@@ -267,7 +283,7 @@ public class ClaimManager {
 
     /**
      * Removes a customer from the system by ID.
-     * 
+     *
      * @param id the customer ID to remove
      * @return true if removed successfully, false if not found
      */
@@ -282,7 +298,7 @@ public class ClaimManager {
 
     /**
      * Removes an insurance card from the system by card number.
-     * 
+     *
      * @param cardNumber the card number to remove
      * @return true if removed successfully, false if not found
      */
@@ -297,7 +313,7 @@ public class ClaimManager {
 
     /**
      * Removes a claim from the system by ID.
-     * 
+     *
      * @param id the claim ID to remove
      * @return true if removed successfully, false if not found
      */
@@ -312,7 +328,7 @@ public class ClaimManager {
 
     /**
      * Saves all customers to the specified file in CSV format.
-     * 
+     *
      * @param filePath the destination file path
      */
     public void saveCustomersToFile(String filePath) {
@@ -327,7 +343,7 @@ public class ClaimManager {
 
     /**
      * Saves all insurance cards to the specified file in CSV format.
-     * 
+     *
      * @param filePath the destination file path
      */
     public void saveCardsToFile(String filePath) {
@@ -343,7 +359,7 @@ public class ClaimManager {
     /**
      * Loads customers from the specified file, skipping and reporting
      * any invalid or malformed lines without stopping the program.
-     * 
+     *
      * @param filePath the source file path
      */
     public void loadCustomersFromFile(String filePath) {
@@ -372,13 +388,14 @@ public class ClaimManager {
                             ? null
                             : parts[3].trim();
 
-                    Customer customer = new Customer(
-                            id,
-                            fullName,
-                            customerType,
-                            parentId);
+                    Customer customer = null;
+                    if ("PolicyHolder".equalsIgnoreCase(customerType)) {
+                        customer = new PolicyHolder(null, null, null, fullName, null, null, id);
+                    } else if ("Dependent".equalsIgnoreCase(customerType)) {
+                        customer = new Dependent(null, null, null, fullName, null, null, id, parentId);
+                    }
 
-                    if (!addCustomer(customer)) {
+                    if (customer == null || !addCustomer(customer)) {
                         System.out.println("Skipping invalid customer line: " + line);
                     }
                 } catch (Exception e) {
@@ -398,7 +415,7 @@ public class ClaimManager {
     /**
      * Loads insurance cards from the specified file, skipping and reporting
      * any invalid or malformed lines without stopping the program.
-     * 
+     *
      * @param filePath the source file path
      */
     public void loadCardsFromFile(String filePath) {
@@ -450,7 +467,7 @@ public class ClaimManager {
 
     /**
      * Saves all claims to the specified file in CSV format.
-     * 
+     *
      * @param filePath the destination file path
      */
     public void saveClaimsToFile(String filePath) {
@@ -466,7 +483,7 @@ public class ClaimManager {
     /**
      * Loads claims from the specified file, skipping and reporting
      * any invalid or malformed lines without stopping the program.
-     * 
+     *
      * @param filePath the source file path
      */
     public void loadClaimsFromFile(String filePath) {
@@ -494,7 +511,12 @@ public class ClaimManager {
                     String cardNumber = parts[3].trim();
                     LocalDateTime examDate = LocalDateTime.parse(parts[4].trim());
                     double claimAmount = Double.parseDouble(parts[5].trim());
-                    String status = parts[6].trim();
+                    String statusStr = parts[6].trim();
+                    ClaimStatus status = ClaimStatus.fromString(statusStr);
+                    if (status == null) {
+                        System.out.println("Skipping invalid claim line: " + line);
+                        continue;
+                    }
 
                     Claim claim = new Claim(
                             id,

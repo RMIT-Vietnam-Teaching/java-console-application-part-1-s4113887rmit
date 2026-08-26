@@ -121,8 +121,13 @@ public class Main {
             parentId = sc.nextLine().trim();
         }
 
-        Customer customer = new Customer(id, fullName, customerType, parentId);
-        boolean success = manager.addCustomer(customer);
+        Customer customer = null;
+        if ("PolicyHolder".equalsIgnoreCase(customerType)) {
+            customer = new PolicyHolder(null, null, null, fullName, null, null, id);
+        } else if ("Dependent".equalsIgnoreCase(customerType)) {
+            customer = new Dependent(null, null, null, fullName, null, null, id, parentId);
+        }
+        boolean success = customer != null && manager.addCustomer(customer);
 
         if (success) {
             System.out.println("Customer added successfully.");
@@ -306,7 +311,7 @@ public class Main {
             return;
         }
 
-        Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, "New");
+        Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, ClaimStatus.NEW);
         boolean success = manager.addClaim(claim);
 
         if (success) {

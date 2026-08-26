@@ -105,19 +105,23 @@ public class Validator {
     }
 
     /**
-     * Checks if a status is New, Processing, or Done.
+     * Checks if a status string is a valid claim status (New, Processing, or Done).
      *
      * @param status the status to validate
      * @return true if valid, false otherwise
      */
     public static boolean isValidStatus(String status) {
-        if (status == null) {
-            return false;
-        }
+        return ClaimStatus.fromString(status) != null;
+    }
 
-        return status.equals("New")
-                || status.equals("Processing")
-                || status.equals("Done");
+    /**
+     * Checks if a ClaimStatus enum is valid (non-null).
+     *
+     * @param status the status enum to validate
+     * @return true if valid, false otherwise
+     */
+    public static boolean isValidStatus(ClaimStatus status) {
+        return status != null;
     }
 
     /**
