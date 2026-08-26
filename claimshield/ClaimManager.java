@@ -135,14 +135,18 @@ public class ClaimManager {
     }
 
     /**
-     * Creates a new claim after validating the ID format, referenced
-     * customer and card, claim amount, status, and the exam/claim/expiration
-     * date relationships.
+     * Adds a new claim to the system after validating all attributes.
+     *
+     * Design Note: Returns boolean false for basic input/format or existence validations
+     * (invalid ID format, duplicate ID, non-existent customer or card, non-positive amount, invalid status).
+     * Throws InvalidClaimDateException for domain business rule violations
+     * (exam date after claim date, or exam date on/after card expiration) to provide specific failure reasons.
      *
      * @param claim the Claim to add
-     * @return true if added successfully, false if validation fails
+     * @return true if added successfully, false if basic validation fails
+     * @throws InvalidClaimDateException if exam date violates chronological or card expiration rules
      */
-    public boolean addClaim(Claim claim) {
+    public boolean addClaim(Claim claim) throws InvalidClaimDateException {
         if (claim == null) {
             return false;
         }
@@ -167,10 +171,14 @@ public class ClaimManager {
         }
         if (claim.getExamDate().toLocalDate()
                 .isAfter(claim.getClaimDate().toLocalDate())) {
-            return false;
+            throw new InvalidClaimDateException(
+                    "Exam date (" + claim.getExamDate().toLocalDate()
+                            + ") must be on or before claim date (" + claim.getClaimDate().toLocalDate() + ").");
         }
         if (!claim.getExamDate().isBefore(card.getExpirationDate())) {
-            return false;
+            throw new InvalidClaimDateException(
+                    "Exam date (" + claim.getExamDate()
+                            + ") must be strictly before insurance card expiration date (" + card.getExpirationDate() + ").");
         }
         claims.add(claim);
         return true;
@@ -178,21 +186,33 @@ public class ClaimManager {
 
     /**
      * Updates a claim's status, enforcing that status can only move
-     * forward (NEW -> PROCESSING -> DONE), never backward.
+     * forward (NEW -> PROCESSING -> DONE), and is immutable once DONE.
+     *
+     * Design Note: Returns boolean false if the claim is not found or the new status is null/unrecognized.
+     * Throws InvalidStatusTransitionException when an invalid or backward status transition is attempted
+     * (business rule violation) to provide detailed contextual error information.
      *
      * @param claimId   the ID of the claim to update
      * @param newStatus the target status
-     * @return true if updated successfully, false if invalid or backward
+     * @return true if updated successfully, false if claim not found or status is null
+     * @throws InvalidStatusTransitionException if an invalid or backward status transition is attempted
      */
-    public boolean updateClaimStatus(String claimId, ClaimStatus newStatus) {
+    public boolean updateClaimStatus(String claimId, ClaimStatus newStatus) throws InvalidStatusTransitionException {
         Claim claim = getClaimById(claimId);
         if (claim == null || newStatus == null) {
             return false;
         }
+        if (claim.getStatus() == ClaimStatus.DONE) {
+            throw new InvalidStatusTransitionException(
+                    "Cannot update claim " + claimId + ": current status is DONE and cannot be modified.");
+        }
         int currentRank = statusRank(claim.getStatus());
         int newRank = statusRank(newStatus);
         if (newRank <= currentRank) {
-            return false;
+            throw new InvalidStatusTransitionException(
+                    "Invalid status transition for claim " + claimId
+                            + ": cannot transition from " + claim.getStatus() + " to " + newStatus
+                            + ". Status must move forward (NEW -> PROCESSING -> DONE).");
         }
         claim.setStatus(newStatus);
         return true;
@@ -201,11 +221,15 @@ public class ClaimManager {
     /**
      * Updates a claim's status using a string representation.
      *
+     * Design Note: Returns boolean false if the status string is unrecognized.
+     * Throws InvalidStatusTransitionException if the status transition violates business rules.
+     *
      * @param claimId   the ID of the claim to update
      * @param newStatus the target status string
-     * @return true if updated successfully, false if invalid or backward
+     * @return true if updated successfully, false if claim not found or status string is invalid
+     * @throws InvalidStatusTransitionException if an invalid or backward status transition is attempted
      */
-    public boolean updateClaimStatus(String claimId, String newStatus) {
+    public boolean updateClaimStatus(String claimId, String newStatus) throws InvalidStatusTransitionException {
         ClaimStatus status = ClaimStatus.fromString(newStatus);
         if (status == null) {
             return false;

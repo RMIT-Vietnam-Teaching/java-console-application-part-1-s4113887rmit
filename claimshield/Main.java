@@ -312,12 +312,15 @@ public class Main {
         }
 
         Claim claim = new Claim(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, ClaimStatus.NEW);
-        boolean success = manager.addClaim(claim);
-
-        if (success) {
-            System.out.println("Claim created successfully with status New.");
-        } else {
-            System.out.println("Failed to create claim. Please check ID, references, dates, and amount.");
+        try {
+            boolean success = manager.addClaim(claim);
+            if (success) {
+                System.out.println("Claim created successfully with status NEW.");
+            } else {
+                System.out.println("Failed to create claim. Please check ID format, duplicate ID, references, and amount.");
+            }
+        } catch (InvalidClaimDateException e) {
+            System.out.println("Error creating claim: " + e.getMessage());
         }
     }
 
@@ -347,14 +350,18 @@ public class Main {
         System.out.print("Claim ID: ");
         String claimId = sc.nextLine().trim();
 
-        System.out.print("New Status (New / Processing / Done): ");
+        System.out.print("New Status (NEW / PROCESSING / DONE): ");
         String newStatus = sc.nextLine().trim();
 
-        boolean success = manager.updateClaimStatus(claimId, newStatus);
-        if (success) {
-            System.out.println("Claim status updated successfully.");
-        } else {
-            System.out.println("Failed to update status. Status must move forward (New -> Processing -> Done).");
+        try {
+            boolean success = manager.updateClaimStatus(claimId, newStatus);
+            if (success) {
+                System.out.println("Claim status updated successfully.");
+            } else {
+                System.out.println("Failed to update status. Claim not found or unrecognized status.");
+            }
+        } catch (InvalidStatusTransitionException e) {
+            System.out.println("Error updating status: " + e.getMessage());
         }
     }
 }
