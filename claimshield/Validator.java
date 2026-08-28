@@ -125,6 +125,20 @@ public class Validator {
     }
 
     /**
+     * Checks if a user ID matches the format u-XXXXXXX (7 digits).
+     *
+     * @param id the user ID to validate
+     * @return true if valid, false otherwise
+     */
+    public static boolean isValidUserId(String id) {
+        if (id == null) {
+            return false;
+        }
+
+        return id.matches("u-\\d{7}");
+    }
+
+    /**
      * Checks whether a customer is a PolicyHolder.
      *
      * @param customer the customer to check

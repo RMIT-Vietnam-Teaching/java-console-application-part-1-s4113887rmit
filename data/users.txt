@@ -1,0 +1,19 @@
+u-0000001,admin,admin123,System Admin,admin@claimshield.com,ADMIN,ACTIVE,
+u-0000002,officer1,officer123,Claims Officer Jane,officer@claimshield.com,OFFICER,ACTIVE,
+u-1000001,dangnn,pass123,Nguyen Ngoc Quang Dang,dang@claimshield.com,CUSTOMER,ACTIVE,c-1000001
+u-1000002,luffy,pass123,Monkey D. Luffy,luffy@strawhat.com,CUSTOMER,ACTIVE,c-1000002
+u-1000003,messi,pass123,Lionel Messi,messi@intermiami.com,CUSTOMER,ACTIVE,c-1000003
+u-1000004,rodri,pass123,Rodrigo Hernandez Cascante,rodri@mancity.com,CUSTOMER,ACTIVE,c-1000004
+u-1000005,natsu,pass123,Natsu Dragneel,natsu@fairytail.com,CUSTOMER,ACTIVE,c-1000005
+u-1000006,yamal,pass123,Lamine Yamal,yamal@barcelona.com,CUSTOMER,ACTIVE,c-1000006
+u-1000007,porro,pass123,Pedro Porro,porro@spurs.com,CUSTOMER,ACTIVE,c-1000007
+u-1000008,debruyne,pass123,Kevin De Bruyne,kdb@mancity.com,CUSTOMER,ACTIVE,c-1000008
+u-1000009,iori,pass123,Iori Kitahara,iori@grandblue.com,CUSTOMER,ACTIVE,c-1000009
+u-1000010,gintoki,pass123,Sakata Gintoki,gin@yorozuya.com,CUSTOMER,ACTIVE,c-1000010
+u-1000011,zoro,pass123,Roronoa Zoro,zoro@strawhat.com,CUSTOMER,ACTIVE,c-1000011
+u-1000012,chopper,pass123,Tony Tony Chopper,chopper@strawhat.com,CUSTOMER,ACTIVE,c-1000012
+u-1000013,chisa,pass123,Kotegawa Chisa,chisa@grandblue.com,CUSTOMER,ACTIVE,c-1000013
+u-1000014,sanji,pass123,Vinsmoke Sanji,sanji@strawhat.com,CUSTOMER,ACTIVE,c-1000014
+u-1000015,nami,pass123,Nami,nami@strawhat.com,CUSTOMER,ACTIVE,c-1000015
+u-2000001,testuser,pass123,Test User,testuser@example.com,CUSTOMER,ACTIVE,c-2000001
+u-1000000,testdemo,pass123,Test user demo,testdemo@example.com,CUSTOMER,ACTIVE,c-1000000
