@@ -45,6 +45,7 @@ public class UserRepository implements UserManageable {
                 customerIdLookup.put(customer.getCustomerId(), customer);
             }
         }
+        AuditLogger.log(AppContext.getCurrentActorId(), "CREATE_USER", user.getUserId());
         return true;
     }
 
@@ -62,6 +63,7 @@ public class UserRepository implements UserManageable {
                         customerIdLookup.put(c.getCustomerId(), c);
                     }
                 }
+                AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_USER", user.getUserId());
                 return true;
             }
         }
@@ -79,6 +81,7 @@ public class UserRepository implements UserManageable {
             if (target instanceof Customer) {
                 customerIdLookup.remove(((Customer) target).getCustomerId());
             }
+            AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_USER", id);
             return true;
         }
         return false;

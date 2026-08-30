@@ -79,6 +79,7 @@ public class ClaimRepository implements ClaimManageable {
                             + ").");
         }
         claims.add(claim);
+        AuditLogger.log(AppContext.getCurrentActorId(), "CREATE_CLAIM", claim.getId());
         return true;
     }
 
@@ -94,6 +95,7 @@ public class ClaimRepository implements ClaimManageable {
                     updateClaimStatus(claim.getId(), claim.getStatus());
                 }
                 claims.set(i, claim);
+                AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_CLAIM", claim.getId());
                 return true;
             }
         }
@@ -138,6 +140,7 @@ public class ClaimRepository implements ClaimManageable {
             }
         }
 
+        AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_CLAIM_STATUS_" + newStatus, claimId);
         return true;
     }
 
@@ -175,6 +178,7 @@ public class ClaimRepository implements ClaimManageable {
             return false;
         }
         claim.addDocument(documentName);
+        AuditLogger.log(AppContext.getCurrentActorId(), "ADD_DOCUMENT_TO_CLAIM", claimId);
         return true;
     }
 
@@ -186,6 +190,7 @@ public class ClaimRepository implements ClaimManageable {
         Claim target = getById(id);
         if (target != null) {
             claims.remove(target);
+            AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_CLAIM", id);
             return true;
         }
         return false;
@@ -327,10 +332,14 @@ public class ClaimRepository implements ClaimManageable {
                             claimAmount,
                             status);
 
-                    if (!add(claim)) {
+                    if (!Validator.isValidClaimId(claim.getId())
+                            || getById(claim.getId()) != null
+                            || !Validator.isPositiveAmount(claim.getClaimAmount())
+                            || !Validator.isValidStatus(claim.getStatus())) {
                         System.out.println("Skipping invalid claim line: " + line);
                         continue;
                     }
+                    claims.add(claim);
 
                     if (parts.length > 7 && !parts[7].trim().isEmpty()) {
                         String[] documents = parts[7].trim().split("\\|");

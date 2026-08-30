@@ -42,6 +42,7 @@ public class CardRepository implements Manageable<InsuranceCard> {
             return false;
         }
         cards.add(card);
+        AuditLogger.log(AppContext.getCurrentActorId(), "CREATE_INSURANCE_CARD", card.getCardNumber());
         return true;
     }
 
@@ -53,6 +54,7 @@ public class CardRepository implements Manageable<InsuranceCard> {
         for (int i = 0; i < cards.size(); i++) {
             if (cards.get(i).getCardNumber().equals(card.getCardNumber())) {
                 cards.set(i, card);
+                AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_INSURANCE_CARD", card.getCardNumber());
                 return true;
             }
         }
@@ -67,6 +69,7 @@ public class CardRepository implements Manageable<InsuranceCard> {
         InsuranceCard target = getById(id);
         if (target != null) {
             cards.remove(target);
+            AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_INSURANCE_CARD", id);
             return true;
         }
         return false;
@@ -141,8 +144,13 @@ public class CardRepository implements Manageable<InsuranceCard> {
                             policyOwnerId,
                             expirationDate);
 
-                    if (!add(card)) {
+                    if (!Validator.isValidCardNumber(cardNumber)
+                            || !Validator.isValidCustomerId(cardHolderId)
+                            || !Validator.isValidCustomerId(policyOwnerId)
+                            || getById(cardNumber) != null) {
                         System.out.println("Skipping invalid card line: " + line);
+                    } else {
+                        cards.add(card);
                     }
                 } catch (Exception e) {
                     System.out.println("Skipping invalid card line: " + line + " (" + e.getMessage() + ")");

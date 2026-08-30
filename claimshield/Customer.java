@@ -106,6 +106,15 @@ public abstract class Customer extends User {
     }
 
     /**
+     * Computes and returns the customer's membership tier based on total approved claims.
+     *
+     * @return the MembershipTier (SILVER, GOLD, or PLATINUM)
+     */
+    public MembershipTier getMembershipTier() {
+        return MembershipTier.computeTier(totalClaimAmount);
+    }
+
+    /**
      * Sets the customer ID.
      *
      * @param customerId the customer ID to set

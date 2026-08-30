@@ -29,4 +29,24 @@ public enum MembershipTier {
             return null;
         }
     }
+
+    /**
+     * Computes the membership tier based on the total claim amount spent.
+     * Tier thresholds:
+     * - PLATINUM: total >= 5,000,000
+     * - GOLD:     total >= 2,000,000 and < 5,000,000
+     * - SILVER:   total < 2,000,000
+     *
+     * @param totalClaimAmount the cumulative total approved claim amount
+     * @return the corresponding MembershipTier
+     */
+    public static MembershipTier computeTier(double totalClaimAmount) {
+        if (totalClaimAmount >= 5000000.0) {
+            return PLATINUM;
+        } else if (totalClaimAmount >= 2000000.0) {
+            return GOLD;
+        } else {
+            return SILVER;
+        }
+    }
 }

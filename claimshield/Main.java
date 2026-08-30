@@ -58,10 +58,15 @@ public class Main {
 
             User currentUser = context.getUserRepository().authenticate(username, password);
             if (currentUser == null) {
+                AuditLogger.log(username, "LOGIN_FAILED", username);
                 System.out
                         .println("Login failed! Invalid username, password, or account is inactive. Please try again.");
                 continue;
             }
+
+            // Set current session user context and record login audit
+            AppContext.setCurrentSessionUser(currentUser);
+            AuditLogger.log(currentUser.getUserId(), "LOGIN_SUCCESS", currentUser.getUserId());
 
             // 4. On successful login: display role dashboard banner once
             currentUser.displayDashboard();
@@ -80,6 +85,10 @@ public class Main {
                 default:
                     System.out.println("Unknown user role encountered.");
             }
+
+            // Clear session context on logout
+            AuditLogger.log(currentUser.getUserId(), "LOGOUT", currentUser.getUserId());
+            AppContext.setCurrentSessionUser(null);
         }
 
         sc.close();
@@ -258,6 +267,7 @@ public class Main {
         if (c != null) {
             UserStatus newStatus = (c.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
             c.setStatus(newStatus);
+            AuditLogger.log(AppContext.getCurrentActorId(), "SOFT_DELETE_CUSTOMER_" + newStatus, id);
             System.out.println("Customer " + id + " (" + c.getFullName() + ") account status updated to: " + newStatus
                     + " (Soft-Delete applied; historical claims and card records preserved).");
         } else {
@@ -661,6 +671,7 @@ public class Main {
 
         UserStatus newStatus = (user.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
         user.setStatus(newStatus);
+        AuditLogger.log(AppContext.getCurrentActorId(), "TOGGLE_USER_STATUS_" + newStatus, userId);
         System.out.println(
                 "User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus);
     }
@@ -684,10 +695,18 @@ public class Main {
     }
 
     private static void viewAuditLogPlaceholder() {
-        System.out.println("\n===== SYSTEM AUDIT LOG (VIEW ONLY) =====");
-        System.out.println("[AUDIT LOG PLACEHOLDER]");
-        System.out.println(
-                "System audit logging service initialized. All role authentication attempts and status transitions are recorded.");
+        System.out.println("\n===== SYSTEM AUDIT LOG (MOST RECENT FIRST) =====");
+        List<AuditLogger.AuditEntry> logs = AuditLogger.readLogsMostRecentFirst();
+        if (logs.isEmpty()) {
+            System.out.println("No audit log entries recorded yet in data/logs.txt.");
+            return;
+        }
+        System.out.println("Total Audit Log Entries: " + logs.size());
+        System.out.println("------------------------------------------------------------------------------------------------");
+        for (AuditLogger.AuditEntry entry : logs) {
+            System.out.println(entry);
+        }
+        System.out.println("------------------------------------------------------------------------------------------------");
     }
 
     private static void viewFinancialStatisticsPlaceholder(AppContext context) {

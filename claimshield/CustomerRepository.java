@@ -47,6 +47,7 @@ public class CustomerRepository implements Manageable<Customer> {
             }
         }
         customers.add(customer);
+        AuditLogger.log(AppContext.getCurrentActorId(), "CREATE_CUSTOMER", customer.getId());
         return true;
     }
 
@@ -58,6 +59,7 @@ public class CustomerRepository implements Manageable<Customer> {
         for (int i = 0; i < customers.size(); i++) {
             if (customers.get(i).getId().equals(customer.getId())) {
                 customers.set(i, customer);
+                AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_CUSTOMER", customer.getId());
                 return true;
             }
         }
@@ -72,6 +74,7 @@ public class CustomerRepository implements Manageable<Customer> {
         Customer target = getById(id);
         if (target != null) {
             customers.remove(target);
+            AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_CUSTOMER", id);
             return true;
         }
         return false;
@@ -141,11 +144,14 @@ public class CustomerRepository implements Manageable<Customer> {
                                 parentId);
                     }
 
-                    if (customer == null || !add(customer)) {
+                    if (customer == null || !Validator.isValidCustomerId(customer.getId()) || getById(customer.getId()) != null) {
                         System.out.println("Skipping invalid customer line: " + line);
-                    } else if (userRepo != null) {
-                        // Register the complete Customer object back into UserRepository
-                        userRepo.registerCustomerUser(customer);
+                    } else {
+                        customers.add(customer);
+                        if (userRepo != null) {
+                            // Register the complete Customer object back into UserRepository
+                            userRepo.registerCustomerUser(customer);
+                        }
                     }
                 } catch (Exception e) {
                     System.out.println("Skipping invalid customer line: " + line + " (" + e.getMessage() + ")");

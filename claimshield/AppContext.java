@@ -14,6 +14,7 @@ public class AppContext {
     private CustomerRepository customerRepository;
     private CardRepository cardRepository;
     private ClaimRepository claimRepository;
+    private static User currentSessionUser;
 
     /**
      * Initializes the AppContext with fresh instances of all four repositories
@@ -24,6 +25,20 @@ public class AppContext {
         this.customerRepository = new CustomerRepository();
         this.cardRepository = new CardRepository();
         this.claimRepository = new ClaimRepository(customerRepository, cardRepository);
+    }
+
+    public static void setCurrentSessionUser(User user) {
+        currentSessionUser = user;
+    }
+
+    public static User getCurrentSessionUser() {
+        return currentSessionUser;
+    }
+
+    public static String getCurrentActorId() {
+        return (currentSessionUser != null && currentSessionUser.getUserId() != null)
+                ? currentSessionUser.getUserId()
+                : "SYSTEM";
     }
 
     public UserRepository getUserRepository() {
