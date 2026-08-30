@@ -10,7 +10,7 @@ import java.util.ArrayList;
 /**
  * Represents a medical claim submitted for reimbursement, including
  * the insured person, related card, claim dates, amount, status,
- * and supporting documents.
+ * supporting documents, and processing officer ID.
  */
 public class Claim {
     private String id;
@@ -21,6 +21,28 @@ public class Claim {
     private ArrayList<String> documents;
     private double claimAmount;
     private ClaimStatus status;
+    private String processedByUserId;
+
+    public Claim(
+            String id,
+            LocalDateTime claimDate,
+            String insuredPersonId,
+            String cardNumber,
+            LocalDateTime examDate,
+            double claimAmount,
+            ClaimStatus status,
+            String processedByUserId
+    ) {
+        this.id = id;
+        this.claimDate = claimDate;
+        this.insuredPersonId = insuredPersonId;
+        this.cardNumber = cardNumber;
+        this.examDate = examDate;
+        this.documents = new ArrayList<>();
+        this.claimAmount = claimAmount;
+        this.status = status;
+        this.processedByUserId = processedByUserId;
+    }
 
     public Claim(
             String id,
@@ -31,14 +53,7 @@ public class Claim {
             double claimAmount,
             ClaimStatus status
     ) {
-        this.id = id;
-        this.claimDate = claimDate;
-        this.insuredPersonId = insuredPersonId;
-        this.cardNumber = cardNumber;
-        this.examDate = examDate;
-        this.documents = new ArrayList<>();
-        this.claimAmount = claimAmount;
-        this.status = status;
+        this(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, status, null);
     }
 
     public Claim(
@@ -50,7 +65,7 @@ public class Claim {
             double claimAmount,
             String status
     ) {
-        this(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, ClaimStatus.fromString(status));
+        this(id, claimDate, insuredPersonId, cardNumber, examDate, claimAmount, ClaimStatus.fromString(status), null);
     }
 
     public String getId() {
@@ -85,6 +100,10 @@ public class Claim {
         return status;
     }
 
+    public String getProcessedByUserId() {
+        return processedByUserId;
+    }
+
     public void setClaimDate(LocalDateTime claimDate) {
         this.claimDate = claimDate;
     }
@@ -117,6 +136,10 @@ public class Claim {
         this.status = ClaimStatus.fromString(status);
     }
 
+    public void setProcessedByUserId(String processedByUserId) {
+        this.processedByUserId = processedByUserId;
+    }
+
     public String toFileString() {
         String documentsStr = String.join("|", documents);
 
@@ -127,7 +150,8 @@ public class Claim {
                 + examDate + ","
                 + claimAmount + ","
                 + (status != null ? status.name() : "") + ","
-                + documentsStr;
+                + documentsStr + ","
+                + (processedByUserId != null ? processedByUserId : "");
     }
 
     @Override
@@ -140,6 +164,7 @@ public class Claim {
                 + ", documents=" + documents
                 + ", claimAmount=" + claimAmount
                 + ", status=" + status
+                + ", processedByUserId=" + processedByUserId
                 + "}";
     }
 }

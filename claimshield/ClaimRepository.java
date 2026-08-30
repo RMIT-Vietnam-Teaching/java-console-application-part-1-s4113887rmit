@@ -16,9 +16,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Repository responsible for claim entity management, status workflow
- * enforcement,
- * query filtering, and persistence to claims.txt.
+ * Repository responsible for claim entity management, status workflow enforcement,
+ * query filtering, analytics reporting, and persistence to claims.txt.
  */
 public class ClaimRepository implements ClaimManageable {
     private ArrayList<Claim> claims;
@@ -105,13 +104,12 @@ public class ClaimRepository implements ClaimManageable {
     /**
      * Updates a claim's status, enforcing that status can only move
      * forward (NEW -> PROCESSING -> DONE), and is immutable once DONE.
+     * Records the current session officer as processedByUserId.
      *
      * @param claimId   the ID of the claim to update
      * @param newStatus the target status
-     * @return true if updated successfully, false if claim not found or input is
-     *         null
-     * @throws InvalidStatusTransitionException if an invalid or backward status
-     *                                          transition is attempted
+     * @return true if updated successfully, false if claim not found or input is null
+     * @throws InvalidStatusTransitionException if an invalid or backward status transition is attempted
      */
     public boolean updateClaimStatus(String claimId, ClaimStatus newStatus) throws InvalidStatusTransitionException {
         Claim claim = getById(claimId);
@@ -132,6 +130,11 @@ public class ClaimRepository implements ClaimManageable {
         }
         claim.setStatus(newStatus);
 
+        String currentActor = AppContext.getCurrentActorId();
+        if (currentActor != null && !currentActor.equals("SYSTEM")) {
+            claim.setProcessedByUserId(currentActor);
+        }
+
         // When a claim transitions to DONE (approved), add its amount to the customer's totalClaimAmount
         if (newStatus == ClaimStatus.DONE && customerRepository != null) {
             Customer customer = customerRepository.getById(claim.getInsuredPersonId());
@@ -149,10 +152,8 @@ public class ClaimRepository implements ClaimManageable {
      *
      * @param claimId   the ID of the claim to update
      * @param newStatus the target status string
-     * @return true if updated successfully, false if claim not found or status
-     *         string is invalid
-     * @throws InvalidStatusTransitionException if an invalid or backward status
-     *                                          transition is attempted
+     * @return true if updated successfully, false if claim not found or status string is invalid
+     * @throws InvalidStatusTransitionException if an invalid or backward status transition is attempted
      */
     public boolean updateClaimStatus(String claimId, String newStatus) throws InvalidStatusTransitionException {
         ClaimStatus status = ClaimStatus.fromString(newStatus);
@@ -271,6 +272,90 @@ public class ClaimRepository implements ClaimManageable {
         return result;
     }
 
+    /**
+     * Computes the total approved (DONE) claim payout within a specific date range.
+     *
+     * @param start start of the timeframe (inclusive)
+     * @param end   end of the timeframe (inclusive)
+     * @return sum of approved claim amounts in the range
+     */
+    public double getApprovedPayoutByDateRange(LocalDateTime start, LocalDateTime end) {
+        double total = 0.0;
+        if (start == null || end == null) {
+            return total;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE) {
+                LocalDateTime d = c.getClaimDate();
+                if ((d.isEqual(start) || d.isAfter(start)) && (d.isEqual(end) || d.isBefore(end))) {
+                    total += c.getClaimAmount();
+                }
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Retrieves all approved (DONE) claims within a specific date range.
+     *
+     * @param start start of the timeframe (inclusive)
+     * @param end   end of the timeframe (inclusive)
+     * @return List of approved claims in the range
+     */
+    public List<Claim> getApprovedClaimsByDateRange(LocalDateTime start, LocalDateTime end) {
+        List<Claim> result = new ArrayList<>();
+        if (start == null || end == null) {
+            return result;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE) {
+                LocalDateTime d = c.getClaimDate();
+                if ((d.isEqual(start) || d.isAfter(start)) && (d.isEqual(end) || d.isBefore(end))) {
+                    result.add(c);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Computes the total approved (DONE) claim payout processed by a specific officer.
+     *
+     * @param officerUserId user ID of the processing officer (e.g. u-0000002)
+     * @return sum of approved claim amounts processed by that officer
+     */
+    public double getApprovedPayoutByOfficer(String officerUserId) {
+        double total = 0.0;
+        if (officerUserId == null) {
+            return total;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE && officerUserId.equals(c.getProcessedByUserId())) {
+                total += c.getClaimAmount();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Retrieves all approved (DONE) claims processed by a specific officer.
+     *
+     * @param officerUserId user ID of the processing officer
+     * @return List of approved claims processed by that officer
+     */
+    public List<Claim> getApprovedClaimsByOfficer(String officerUserId) {
+        List<Claim> result = new ArrayList<>();
+        if (officerUserId == null) {
+            return result;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE && officerUserId.equals(c.getProcessedByUserId())) {
+                result.add(c);
+            }
+        }
+        return result;
+    }
+
     private int statusRank(ClaimStatus status) {
         if (status == null) {
             return -1;
@@ -289,7 +374,7 @@ public class ClaimRepository implements ClaimManageable {
 
     /**
      * Loads claims from claims.txt.
-     * Uses line.split(",", -1) to preserve trailing empty document columns.
+     * Uses line.split(",", -1) to preserve trailing empty columns (documents and processedByUserId).
      *
      * @param filePath the path to claims.txt
      */
@@ -323,6 +408,10 @@ public class ClaimRepository implements ClaimManageable {
                         continue;
                     }
 
+                    String processedByUserId = (parts.length > 8 && !parts[8].trim().isEmpty())
+                            ? parts[8].trim()
+                            : null;
+
                     Claim claim = new Claim(
                             id,
                             claimDate,
@@ -330,7 +419,8 @@ public class ClaimRepository implements ClaimManageable {
                             cardNumber,
                             examDate,
                             claimAmount,
-                            status);
+                            status,
+                            processedByUserId);
 
                     if (!Validator.isValidClaimId(claim.getId())
                             || getById(claim.getId()) != null

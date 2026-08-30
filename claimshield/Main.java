@@ -11,7 +11,7 @@ import java.util.Scanner;
 /**
  * Main application console entry point for the ClaimShield Insurance System.
  * Supports authentication, role-based menus (Admin, Claims Officer, Customer),
- * full CRUD and queries, and persistence.
+ * full CRUD, advanced analytics/reports, and persistence.
  */
 public class Main {
     private static final String USERS_FILE = "data/users.txt";
@@ -59,8 +59,7 @@ public class Main {
             User currentUser = context.getUserRepository().authenticate(username, password);
             if (currentUser == null) {
                 AuditLogger.log(username, "LOGIN_FAILED", username);
-                System.out
-                        .println("Login failed! Invalid username, password, or account is inactive. Please try again.");
+                System.out.println("Login failed! Invalid username, password, or account is inactive. Please try again.");
                 continue;
             }
 
@@ -93,6 +92,7 @@ public class Main {
 
         sc.close();
     }
+
     // =========================================================================
     // ADMIN MENU & OPERATIONS
     // =========================================================================
@@ -105,8 +105,8 @@ public class Main {
             System.out.println("2. Manage Insurance Cards (CRUD)");
             System.out.println("3. Manage Claims (CRUD, Processing, Advanced Filters)");
             System.out.println("4. Manage User Accounts & Soft-Delete");
-            System.out.println("5. View System Audit Log (Placeholder)");
-            System.out.println("6. View Financial Statistics & Summary");
+            System.out.println("5. View System Audit Log");
+            System.out.println("6. Financial Analytics & Reports");
             System.out.println("7. Save All Changes to Files");
             System.out.println("8. Logout to Login Screen");
             System.out.print("Choose an option: ");
@@ -129,7 +129,7 @@ public class Main {
                     viewAuditLogPlaceholder();
                     break;
                 case "6":
-                    viewFinancialStatisticsPlaceholder(context);
+                    adminReportsSubMenu(context, sc);
                     break;
                 case "7":
                     context.saveAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE);
@@ -203,8 +203,7 @@ public class Main {
         if (success) {
             System.out.println("PolicyHolder and user account registered successfully!");
         } else {
-            System.out.println(
-                    "Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
+            System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
         }
     }
 
@@ -235,8 +234,7 @@ public class Main {
         if (success) {
             System.out.println("Dependent and user account registered successfully and linked to parent!");
         } else {
-            System.out.println(
-                    "Failed to register Dependent. Please check ID formats, ensure parent exists as a PolicyHolder, and verify no duplicate accounts.");
+            System.out.println("Failed to register Dependent. Please check ID formats, ensure parent exists as a PolicyHolder, and verify no duplicate accounts.");
         }
     }
 
@@ -438,6 +436,7 @@ public class Main {
                     + " | Status: " + u.getStatus());
         }
     }
+
     // =========================================================================
     // CLAIMS OFFICER MENU & OPERATIONS
     // =========================================================================
@@ -497,6 +496,7 @@ public class Main {
             }
         }
     }
+
     // =========================================================================
     // CUSTOMER MENU & OPERATIONS (STRICTLY READ-ONLY)
     // =========================================================================
@@ -624,8 +624,9 @@ public class Main {
             System.out.println("Covering PolicyHolder ID: " + parentId + " (Record not found)");
         }
     }
+
     // =========================================================================
-    // ADMIN USER MANAGEMENT, SOFT-DELETE, AND PLACEHOLDER OPERATIONS
+    // ADMIN USER MANAGEMENT & SOFT-DELETE OPERATIONS
     // =========================================================================
 
     private static void adminUserSubMenu(AppContext context, Scanner sc) {
@@ -672,8 +673,7 @@ public class Main {
         UserStatus newStatus = (user.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
         user.setStatus(newStatus);
         AuditLogger.log(AppContext.getCurrentActorId(), "TOGGLE_USER_STATUS_" + newStatus, userId);
-        System.out.println(
-                "User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus);
+        System.out.println("User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus);
     }
 
     private static void adminSearchUserFlow(AppContext context, Scanner sc) {
@@ -709,28 +709,194 @@ public class Main {
         System.out.println("------------------------------------------------------------------------------------------------");
     }
 
-    private static void viewFinancialStatisticsPlaceholder(AppContext context) {
-        System.out.println("\n===== FINANCIAL STATISTICS & SUMMARY =====");
+    // =========================================================================
+    // FINANCIAL ANALYTICS & REPORTS SUBMENU
+    // =========================================================================
+
+    private static void adminReportsSubMenu(AppContext context, Scanner sc) {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n========== FINANCIAL ANALYTICS & REPORTS ==========");
+            System.out.println("1. Overall Claims Volume & Breakdown by Status");
+            System.out.println("2. Total Approved (DONE) Payout by Timeframe (Day/Week/Month/Custom)");
+            System.out.println("3. Total Claim Payout Processed per Claims Officer");
+            System.out.println("4. Back to Admin Menu");
+            System.out.print("Choose an option: ");
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    viewOverallClaimsVolumeReport(context);
+                    break;
+                case "2":
+                    viewPayoutByTimeframeSubMenu(context, sc);
+                    break;
+                case "3":
+                    viewPayoutPerOfficerReport(context);
+                    break;
+                case "4":
+                    back = true;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private static void viewOverallClaimsVolumeReport(AppContext context) {
+        System.out.println("\n===== OVERALL CLAIMS VOLUME & BREAKDOWN =====");
         double totalApproved = 0.0;
         double totalProcessing = 0.0;
         double totalNew = 0.0;
+        int countApproved = 0;
+        int countProcessing = 0;
+        int countNew = 0;
 
         for (Claim c : context.getClaimRepository().getAll()) {
             if (c.getStatus() == ClaimStatus.DONE) {
                 totalApproved += c.getClaimAmount();
+                countApproved++;
             } else if (c.getStatus() == ClaimStatus.PROCESSING) {
                 totalProcessing += c.getClaimAmount();
+                countProcessing++;
             } else if (c.getStatus() == ClaimStatus.NEW) {
                 totalNew += c.getClaimAmount();
+                countNew++;
             }
         }
 
-        System.out.println("Total Approved Claims (DONE)       : " + String.format("%,.2f VND", totalApproved));
-        System.out.println("Total Processing Claims            : " + String.format("%,.2f VND", totalProcessing));
-        System.out.println("Total Pending Claims (NEW)         : " + String.format("%,.2f VND", totalNew));
-        System.out.println("Cumulative Claim Volume            : "
+        System.out.println("Total Approved Claims (DONE)       : " + countApproved + " claim(s) | " + String.format("%,.2f VND", totalApproved));
+        System.out.println("Total Processing Claims            : " + countProcessing + " claim(s) | " + String.format("%,.2f VND", totalProcessing));
+        System.out.println("Total Pending Claims (NEW)         : " + countNew + " claim(s) | " + String.format("%,.2f VND", totalNew));
+        System.out.println("Cumulative Claim Volume            : " + (countApproved + countProcessing + countNew) + " claim(s) | "
                 + String.format("%,.2f VND", (totalApproved + totalProcessing + totalNew)));
     }
+
+    private static void viewPayoutByTimeframeSubMenu(AppContext context, Scanner sc) {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n--- Approved (DONE) Payout by Timeframe ---");
+            System.out.println("1. Today");
+            System.out.println("2. This Week (Past 7 Days)");
+            System.out.println("3. This Month (Current Calendar Month)");
+            System.out.println("4. Custom Date Range");
+            System.out.println("5. Back to Reports Menu");
+            System.out.print("Choose a window: ");
+            String choice = sc.nextLine().trim();
+
+            LocalDateTime start = null;
+            LocalDateTime end = null;
+            String windowLabel = "";
+
+            switch (choice) {
+                case "1":
+                    start = java.time.LocalDate.now().atStartOfDay();
+                    end = java.time.LocalDate.now().atTime(23, 59, 59);
+                    windowLabel = "Today (" + java.time.LocalDate.now() + ")";
+                    break;
+                case "2":
+                    start = java.time.LocalDate.now().minusDays(6).atStartOfDay();
+                    end = LocalDateTime.now();
+                    windowLabel = "This Week (" + start.toLocalDate() + " to " + end.toLocalDate() + ")";
+                    break;
+                case "3":
+                    start = java.time.LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                    end = LocalDateTime.now();
+                    windowLabel = "This Month (" + start.toLocalDate() + " to " + end.toLocalDate() + ")";
+                    break;
+                case "4":
+                    System.out.print("Start Date-Time (yyyy-MM-ddTHH:mm): ");
+                    try {
+                        start = LocalDateTime.parse(sc.nextLine().trim());
+                    } catch (Exception e) {
+                        System.out.println("Invalid start date format.");
+                        continue;
+                    }
+                    System.out.print("End Date-Time (yyyy-MM-ddTHH:mm): ");
+                    try {
+                        end = LocalDateTime.parse(sc.nextLine().trim());
+                    } catch (Exception e) {
+                        System.out.println("Invalid end date format.");
+                        continue;
+                    }
+                    windowLabel = "Custom Range (" + start + " to " + end + ")";
+                    break;
+                case "5":
+                    back = true;
+                    continue;
+                default:
+                    System.out.println("Invalid option. Please choose between 1 and 5.");
+                    continue;
+            }
+
+            if (start != null && end != null) {
+                double payout = context.getClaimRepository().getApprovedPayoutByDateRange(start, end);
+                List<Claim> approvedClaims = context.getClaimRepository().getApprovedClaimsByDateRange(start, end);
+
+                System.out.println("\n===== APPROVED PAYOUT REPORT: " + windowLabel + " =====");
+                System.out.println("Total Approved Claims Found : " + approvedClaims.size());
+                System.out.println("Total Approved Payout Amount: " + String.format("%,.2f VND", payout));
+                if (!approvedClaims.isEmpty()) {
+                    System.out.println("--- Claim Details ---");
+                    for (Claim c : approvedClaims) {
+                        System.out.println("Claim ID: " + c.getId()
+                                + " | Insured: " + c.getInsuredPersonId()
+                                + " | Amount: " + String.format("%,.2f VND", c.getClaimAmount())
+                                + " | Claim Date: " + c.getClaimDate()
+                                + " | Processed By: " + (c.getProcessedByUserId() != null ? c.getProcessedByUserId() : "Unassigned"));
+                    }
+                }
+            }
+        }
+    }
+
+    private static void viewPayoutPerOfficerReport(AppContext context) {
+        System.out.println("\n===== TOTAL CLAIM PAYOUT PROCESSED PER CLAIMS OFFICER =====");
+        List<User> allUsers = context.getUserRepository().getAll();
+        double grandTotalOfficerPayout = 0.0;
+        int totalOfficerClaimsCount = 0;
+
+        for (User u : allUsers) {
+            if (u.getRole() == UserRole.OFFICER) {
+                double officerPayout = context.getClaimRepository().getApprovedPayoutByOfficer(u.getUserId());
+                List<Claim> officerClaims = context.getClaimRepository().getApprovedClaimsByOfficer(u.getUserId());
+
+                System.out.println("\nOfficer : " + u.getFullName() + " (ID: " + u.getUserId() + ")");
+                System.out.println("Approved Claims Processed: " + officerClaims.size());
+                System.out.println("Total Approved Payout    : " + String.format("%,.2f VND", officerPayout));
+                if (!officerClaims.isEmpty()) {
+                    System.out.println("Processed Claim IDs      : ");
+                    for (Claim oc : officerClaims) {
+                        System.out.println("  -> Claim " + oc.getId() + " | Amount: " + String.format("%,.2f VND", oc.getClaimAmount())
+                                + " | Insured: " + oc.getInsuredPersonId() + " | Date: " + oc.getClaimDate());
+                    }
+                }
+                grandTotalOfficerPayout += officerPayout;
+                totalOfficerClaimsCount += officerClaims.size();
+            }
+        }
+
+        // Check for unassigned legacy claims (claims where processedByUserId is null)
+        double unassignedPayout = 0.0;
+        int unassignedCount = 0;
+        for (Claim c : context.getClaimRepository().getAll()) {
+            if (c.getStatus() == ClaimStatus.DONE && (c.getProcessedByUserId() == null || c.getProcessedByUserId().trim().isEmpty())) {
+                unassignedPayout += c.getClaimAmount();
+                unassignedCount++;
+            }
+        }
+
+        if (unassignedCount > 0) {
+            System.out.println("\nLegacy / Unassigned Approved Claims (pre-existing before Phase 7 tracking):");
+            System.out.println("Count: " + unassignedCount + " claim(s) | Payout: " + String.format("%,.2f VND", unassignedPayout));
+        }
+
+        System.out.println("\n--------------------------------------------------------------------------------");
+        System.out.println("Grand Total Approved Payout (All Claims): "
+                + String.format("%,.2f VND", (grandTotalOfficerPayout + unassignedPayout)));
+        System.out.println("--------------------------------------------------------------------------------");
+    }
+
     // =========================================================================
     // CLAIM OPERATION FLOWS (WITH COMPLETE EXCEPTION HANDLING)
     // =========================================================================
