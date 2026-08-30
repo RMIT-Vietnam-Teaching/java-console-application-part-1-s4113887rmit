@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Specialized interface extending Manageable for user account operations
  * and authentication.
  */

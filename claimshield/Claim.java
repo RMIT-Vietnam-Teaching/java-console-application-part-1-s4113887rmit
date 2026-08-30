@@ -1,13 +1,11 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Represents a medical claim submitted for reimbursement, including
  * the insured person, related card, claim dates, amount, status,
  * supporting documents, and processing officer ID.

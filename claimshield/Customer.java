@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Abstract base class representing a customer in the ClaimShield system.
  * A Customer is a User with customer-specific attributes including a
  * customer ID, an insurance card reference, and a total claim amount.

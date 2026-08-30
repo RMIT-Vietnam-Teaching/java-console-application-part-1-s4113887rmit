@@ -1,9 +1,5 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -14,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Repository responsible for insurance card entity management, CRUD operations,
  * and persistence to cards.txt.
  */

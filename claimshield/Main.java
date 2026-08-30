@@ -1,14 +1,12 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Scanner;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Main application console entry point for the ClaimShield Insurance System.
  * Supports authentication, role-based menus (Admin, Claims Officer, Customer),
  * full CRUD, advanced analytics/reports, and persistence.

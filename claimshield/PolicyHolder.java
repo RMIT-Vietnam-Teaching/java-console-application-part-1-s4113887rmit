@@ -1,12 +1,10 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.util.ArrayList;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Represents a policyholder customer in the ClaimShield system.
  * A PolicyHolder is the primary insurance policy owner and can have
  * zero or more associated dependents.

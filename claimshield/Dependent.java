@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Represents a dependent customer in the ClaimShield system.
  * A Dependent is covered under a PolicyHolder's insurance plan and
  * references the parent PolicyHolder via customerId.

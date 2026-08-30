@@ -2,13 +2,12 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Exception thrown when an invalid claim status transition is attempted
  * (e.g., transitioning backward or skipping required stages).
  */
 public class InvalidStatusTransitionException extends Exception {
+    private static final long serialVersionUID = 1L;
 
     /**
      * Constructs a new InvalidStatusTransitionException with the specified detail

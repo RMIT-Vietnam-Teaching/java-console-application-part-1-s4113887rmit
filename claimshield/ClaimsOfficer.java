@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Represents a claims officer in the ClaimShield system responsible for
  * reviewing and processing claims.
  */

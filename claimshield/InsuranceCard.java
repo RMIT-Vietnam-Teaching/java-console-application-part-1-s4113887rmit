@@ -1,12 +1,10 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.time.LocalDateTime;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Represents an insurance card issued to a customer, including
  * the card holder, policy owner, and expiration date.
  */

@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Abstract base class representing a user account in the ClaimShield system.
  */
 public abstract class User {

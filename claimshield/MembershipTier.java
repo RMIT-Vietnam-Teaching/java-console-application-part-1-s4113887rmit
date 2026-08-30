@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Defines the membership tiers available for policyholders/customers in the
  * ClaimShield system.
  */

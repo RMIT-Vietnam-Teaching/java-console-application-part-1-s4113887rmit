@@ -1,12 +1,10 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.util.regex.Pattern;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Provides static validation methods for checking the format and
  * business rules of IDs, amounts, dates, and other fields used
  * throughout the ClaimShield system.

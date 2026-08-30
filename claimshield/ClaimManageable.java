@@ -1,13 +1,11 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Specialized interface extending Manageable for claim-specific operations
  * and query filtering.
  */

@@ -1,9 +1,5 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -15,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Repository responsible for user account management, authentication,
  * and user file persistence (users.txt).
  */

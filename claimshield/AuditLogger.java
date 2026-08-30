@@ -1,9 +1,5 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -17,6 +13,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Utility service responsible for append-only audit trail logging to
  * data/logs.txt.
  * Records all system administrative, management, and processing actions with

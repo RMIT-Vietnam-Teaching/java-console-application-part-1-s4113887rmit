@@ -1,9 +1,5 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -16,6 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Repository responsible for claim entity management, status workflow enforcement,
  * query filtering, analytics reporting, and persistence to claims.txt.
  */

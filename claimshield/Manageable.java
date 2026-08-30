@@ -1,12 +1,10 @@
 package claimshield;
 
-/**
- * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
 import java.util.List;
 
 /**
+ * @author Nguyen Ngoc Quang Dang - S4113887
+ *
  * Generic interface defining standard CRUD operations for manageable entities.
  *
  * @param <T> the type of entity managed

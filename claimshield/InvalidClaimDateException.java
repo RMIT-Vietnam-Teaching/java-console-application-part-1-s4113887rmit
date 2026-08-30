@@ -2,13 +2,12 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Exception thrown when a claim date or exam date is invalid or violates
  * chronological business constraints.
  */
 public class InvalidClaimDateException extends Exception {
+    private static final long serialVersionUID = 1L;
 
     /**
      * Constructs a new InvalidClaimDateException with the specified detail message.

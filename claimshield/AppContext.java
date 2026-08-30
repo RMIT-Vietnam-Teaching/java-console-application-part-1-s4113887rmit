@@ -2,9 +2,7 @@ package claimshield;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
- */
-
-/**
+ *
  * Central application context and data orchestration container that owns
  * all four focused repositories (User, Customer, Card, Claim) and executes
  * the Two-Pass Wiring data loading lifecycle.
