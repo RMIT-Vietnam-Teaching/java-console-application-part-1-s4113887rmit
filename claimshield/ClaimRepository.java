@@ -120,11 +120,11 @@ public class ClaimRepository implements ClaimManageable {
         }
         int currentRank = statusRank(claim.getStatus());
         int newRank = statusRank(newStatus);
-        if (newRank <= currentRank) {
+        if (newRank != currentRank + 1) {
             throw new InvalidStatusTransitionException(
                     "Invalid status transition for claim " + claimId
                             + ": cannot transition from " + claim.getStatus() + " to " + newStatus
-                            + ". Status must move forward (NEW -> PROCESSING -> DONE).");
+                            + ". Status must move forward one step at a time (NEW -> PROCESSING -> DONE).");
         }
         claim.setStatus(newStatus);
 

@@ -7,9 +7,27 @@ package claimshield;
  * ClaimShield system.
  */
 public enum MembershipTier {
-    SILVER,
-    GOLD,
-    PLATINUM;
+    SILVER(0.05),
+    GOLD(0.10),
+    PLATINUM(0.15);
+
+    private final double discountRate;
+
+    MembershipTier(double discountRate) {
+        this.discountRate = discountRate;
+    }
+
+    /**
+     * Gets the co-pay discount rate associated with this membership tier.
+     * - PLATINUM: 0.15 (15%)
+     * - GOLD:     0.10 (10%)
+     * - SILVER:   0.05 (5%)
+     *
+     * @return the discount rate as a decimal
+     */
+    public double getDiscountRate() {
+        return discountRate;
+    }
 
     /**
      * Parses a string representation into a MembershipTier (case-insensitive).

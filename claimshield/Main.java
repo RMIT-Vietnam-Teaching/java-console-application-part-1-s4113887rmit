@@ -553,6 +553,7 @@ public class Main {
         System.out.println("Account Status   : " + customer.getStatus());
         System.out.println("Customer Type    : " + customer.getCustomerType());
         System.out.println("Membership Tier  : " + customer.getMembershipTier());
+        System.out.println("Co-pay Discount  : " + String.format("%.0f%%", customer.getMembershipTier().getDiscountRate() * 100));
         System.out.println("Approved Claims  : " + customer.getTotalClaimAmount());
     }
 
