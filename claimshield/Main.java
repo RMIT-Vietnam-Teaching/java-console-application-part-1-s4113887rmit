@@ -150,8 +150,9 @@ public class Main {
             System.out.println("1. Add New PolicyHolder (with User Account)");
             System.out.println("2. Add New Dependent (with User Account)");
             System.out.println("3. View All Customers & Details");
-            System.out.println("4. Toggle Customer Status (Soft-Delete / Deactivate / Reactivate)");
-            System.out.println("5. Back to Admin Menu");
+            System.out.println("4. View Customer by ID");
+            System.out.println("5. Toggle Customer Status (Soft-Delete / Deactivate / Reactivate)");
+            System.out.println("6. Back to Admin Menu");
             System.out.print("Choose an option: ");
             String choice = sc.nextLine().trim();
 
@@ -166,9 +167,12 @@ public class Main {
                     adminViewAllCustomers(context);
                     break;
                 case "4":
-                    adminSoftDeleteCustomerFlow(context, sc);
+                    viewCustomerByIdFlow(context, sc);
                     break;
                 case "5":
+                    adminSoftDeleteCustomerFlow(context, sc);
+                    break;
+                case "6":
                     back = true;
                     break;
                 default:
@@ -254,6 +258,19 @@ public class Main {
         }
     }
 
+    private static void viewCustomerByIdFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- View Customer by ID ---");
+        System.out.print("Enter Customer ID: ");
+        String id = sc.nextLine().trim();
+
+        Customer c = context.getCustomerRepository().getById(id);
+        if (c != null) {
+            System.out.println(c);
+        } else {
+            System.out.println("Customer not found with ID: " + id);
+        }
+    }
+
     private static void adminSoftDeleteCustomerFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Toggle Customer Status (Soft-Delete) ---");
         System.out.print("Enter Customer ID to activate/deactivate: ");
@@ -277,8 +294,9 @@ public class Main {
             System.out.println("\n----- Admin: Insurance Card Management -----");
             System.out.println("1. Register New Card");
             System.out.println("2. View All Cards");
-            System.out.println("3. Remove Card");
-            System.out.println("4. Back to Admin Menu");
+            System.out.println("3. View Card by Card Number");
+            System.out.println("4. Remove Card");
+            System.out.println("5. Back to Admin Menu");
             System.out.print("Choose an option: ");
             String choice = sc.nextLine().trim();
 
@@ -290,9 +308,12 @@ public class Main {
                     viewAllCards(context);
                     break;
                 case "3":
-                    removeCardFlow(context, sc);
+                    viewCardByNumberFlow(context, sc);
                     break;
                 case "4":
+                    removeCardFlow(context, sc);
+                    break;
+                case "5":
                     back = true;
                     break;
                 default:
@@ -355,6 +376,19 @@ public class Main {
         }
     }
 
+    private static void viewCardByNumberFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- View Insurance Card by Card Number ---");
+        System.out.print("Enter Card Number: ");
+        String cardNumber = sc.nextLine().trim();
+
+        InsuranceCard card = context.getCardRepository().getById(cardNumber);
+        if (card != null) {
+            System.out.println(card);
+        } else {
+            System.out.println("Card not found with number: " + cardNumber);
+        }
+    }
+
     private static void removeCardFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Remove Insurance Card ---");
         System.out.print("Enter Card Number to remove: ");
@@ -376,11 +410,12 @@ public class Main {
             System.out.println("2. Add Supporting Document to Claim");
             System.out.println("3. Update Claim Status (NEW -> PROCESSING -> DONE)");
             System.out.println("4. View All Claims");
-            System.out.println("5. Filter Claims by Status");
-            System.out.println("6. Filter Claims by Date Range");
-            System.out.println("7. Filter Claims by PolicyHolder Family");
-            System.out.println("8. Remove Claim");
-            System.out.println("9. Back to Admin Menu");
+            System.out.println("5. View Claim by ID");
+            System.out.println("6. Filter Claims by Status");
+            System.out.println("7. Filter Claims by Date Range");
+            System.out.println("8. Filter Claims by PolicyHolder Family");
+            System.out.println("9. Remove Claim");
+            System.out.println("10. Back to Admin Menu");
             System.out.print("Choose an option: ");
             String choice = sc.nextLine().trim();
 
@@ -398,18 +433,21 @@ public class Main {
                     viewAllClaims(context);
                     break;
                 case "5":
-                    filterClaimsByStatusFlow(context, sc);
+                    viewClaimByIdFlow(context, sc);
                     break;
                 case "6":
-                    filterClaimsByDateRangeFlow(context, sc);
+                    filterClaimsByStatusFlow(context, sc);
                     break;
                 case "7":
-                    filterClaimsByFamilyFlow(context, sc);
+                    filterClaimsByDateRangeFlow(context, sc);
                     break;
                 case "8":
-                    removeClaimFlow(context, sc);
+                    filterClaimsByFamilyFlow(context, sc);
                     break;
                 case "9":
+                    removeClaimFlow(context, sc);
+                    break;
+                case "10":
                     back = true;
                     break;
                 default:
@@ -451,8 +489,9 @@ public class Main {
             System.out.println("6. Filter Claims by PolicyHolder Family");
             System.out.println("7. View Customer Directory (Read-only)");
             System.out.println("8. View Insurance Cards (Read-only)");
-            System.out.println("9. Save All Changes to Files");
-            System.out.println("10. Logout to Login Screen");
+            System.out.println("9. View Claim by ID");
+            System.out.println("10. Save All Changes to Files");
+            System.out.println("11. Logout to Login Screen");
             System.out.print("Choose an option: ");
             String choice = sc.nextLine().trim();
 
@@ -482,15 +521,18 @@ public class Main {
                     viewAllCards(context);
                     break;
                 case "9":
+                    viewClaimByIdFlow(context, sc);
+                    break;
+                case "10":
                     context.saveAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE);
                     System.out.println("All system datasets saved successfully to files.");
                     break;
-                case "10":
+                case "11":
                     System.out.println("Logging out from Claims Officer session...");
                     inSession = false;
                     break;
                 default:
-                    System.out.println("Invalid option. Please choose between 1 and 10.");
+                    System.out.println("Invalid option. Please choose between 1 and 11.");
             }
         }
     }
@@ -1008,6 +1050,19 @@ public class Main {
         }
         for (Claim c : claims) {
             System.out.println(c);
+        }
+    }
+
+    private static void viewClaimByIdFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- View Claim by ID ---");
+        System.out.print("Enter Claim ID: ");
+        String claimId = sc.nextLine().trim();
+
+        Claim claim = context.getClaimRepository().getById(claimId);
+        if (claim != null) {
+            System.out.println(claim);
+        } else {
+            System.out.println("Claim not found with ID: " + claimId);
         }
     }
 
