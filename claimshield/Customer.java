@@ -113,6 +113,19 @@ public abstract class Customer extends User {
     }
 
     /**
+     * Calculates the estimated patient co-pay for a given claim amount,
+     * applying the customer's membership tier discount to the standard 20% co-pay.
+     *
+     * @param claimAmount the total claim amount
+     * @return the discounted patient co-pay amount
+     */
+    public double calculatePatientCopay(double claimAmount) {
+        double standardCopay = claimAmount * 0.20;
+        double discountRate = getMembershipTier().getDiscountRate();
+        return standardCopay * (1.0 - discountRate);
+    }
+
+    /**
      * Sets the customer ID.
      *
      * @param customerId the customer ID to set

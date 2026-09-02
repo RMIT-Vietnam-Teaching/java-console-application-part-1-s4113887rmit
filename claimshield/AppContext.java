@@ -39,6 +39,11 @@ public class AppContext {
                 : "SYSTEM";
     }
 
+    private String usersPath = "data/users.txt";
+    private String customersPath = "data/customers.txt";
+    private String cardsPath = "data/cards.txt";
+    private String claimsPath = "data/claims.txt";
+
     public UserRepository getUserRepository() {
         return userRepository;
     }
@@ -73,6 +78,11 @@ public class AppContext {
      * @param claimsPath    file path to claims.txt
      */
     public void loadAll(String usersPath, String customersPath, String cardsPath, String claimsPath) {
+        this.usersPath = usersPath;
+        this.customersPath = customersPath;
+        this.cardsPath = cardsPath;
+        this.claimsPath = claimsPath;
+
         // 1. Pass 1a: Load all user accounts from users.txt
         userRepository.loadUsersFromFile(usersPath);
 
@@ -262,5 +272,20 @@ public class AppContext {
         customerRepository.saveCustomersToFile(customersPath);
         cardRepository.saveCardsToFile(cardsPath);
         claimRepository.saveClaimsToFile(claimsPath);
+    }
+
+    /**
+     * Automatically saves all repository datasets to their currently configured file paths.
+     * Used for immediate persistence upon any data modification.
+     */
+    public void autoSave() {
+        saveAll(usersPath, customersPath, cardsPath, claimsPath);
+    }
+
+    /**
+     * Overloaded saveAll without parameters that delegates to autoSave().
+     */
+    public void saveAll() {
+        autoSave();
     }
 }

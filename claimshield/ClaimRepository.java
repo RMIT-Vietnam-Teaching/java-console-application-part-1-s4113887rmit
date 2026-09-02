@@ -58,16 +58,22 @@ public class ClaimRepository implements ClaimManageable {
         if (cardRepository != null && card == null) {
             return false;
         }
+        if (card != null && !card.getCardHolderId().equals(claim.getInsuredPersonId())) {
+            System.out.println("Validation Error: Card " + card.getCardNumber()
+                    + " belongs to customer " + card.getCardHolderId()
+                    + ", not insured person " + claim.getInsuredPersonId() + ".");
+            return false;
+        }
         if (!Validator.isPositiveAmount(claim.getClaimAmount())) {
             return false;
         }
         if (!Validator.isValidStatus(claim.getStatus())) {
             return false;
         }
-        if (claim.getExamDate().toLocalDate().isAfter(claim.getClaimDate().toLocalDate())) {
+        if (claim.getExamDate().isAfter(claim.getClaimDate())) {
             throw new InvalidClaimDateException(
-                    "Exam date (" + claim.getExamDate().toLocalDate()
-                            + ") must be on or before claim date (" + claim.getClaimDate().toLocalDate() + ").");
+                    "Exam date (" + claim.getExamDate()
+                            + ") must be on or before claim date (" + claim.getClaimDate() + ").");
         }
         if (card != null && !claim.getExamDate().isBefore(card.getExpirationDate())) {
             throw new InvalidClaimDateException(
@@ -88,6 +94,10 @@ public class ClaimRepository implements ClaimManageable {
         for (int i = 0; i < claims.size(); i++) {
             if (claims.get(i).getId().equals(claim.getId())) {
                 Claim existing = claims.get(i);
+                if (existing.getStatus() == ClaimStatus.DONE) {
+                    throw new InvalidStatusTransitionException(
+                            "Cannot update claim " + claim.getId() + ": Claim is marked DONE and is immutable.");
+                }
                 if (existing.getStatus() != claim.getStatus()) {
                     updateClaimStatus(claim.getId(), claim.getStatus());
                 }
@@ -173,6 +183,10 @@ public class ClaimRepository implements ClaimManageable {
         if (claim == null) {
             return false;
         }
+        if (claim.getStatus() == ClaimStatus.DONE) {
+            System.out.println("Cannot add document to claim " + claimId + ": Claim is marked DONE and is immutable.");
+            return false;
+        }
         if (!Validator.isValidDocumentName(documentName, claim.getId(), claim.getCardNumber())) {
             return false;
         }
@@ -188,6 +202,12 @@ public class ClaimRepository implements ClaimManageable {
         }
         Claim target = getById(id);
         if (target != null) {
+            if (target.getStatus() == ClaimStatus.DONE && customerRepository != null) {
+                Customer customer = customerRepository.getById(target.getInsuredPersonId());
+                if (customer != null) {
+                    customer.setTotalClaimAmount(Math.max(0.0, customer.getTotalClaimAmount() - target.getClaimAmount()));
+                }
+            }
             claims.remove(target);
             AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_CLAIM", id);
             return true;

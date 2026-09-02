@@ -203,7 +203,8 @@ public class Main {
 
         boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
         if (success) {
-            System.out.println("PolicyHolder and user account registered successfully!");
+            context.autoSave();
+            System.out.println("PolicyHolder and user account registered successfully! (Data auto-saved to files)");
         } else {
             System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
         }
@@ -234,7 +235,8 @@ public class Main {
 
         boolean success = context.registerDependent(userId, username, password, fullName, email, customerId, parentId);
         if (success) {
-            System.out.println("Dependent and user account registered successfully and linked to parent!");
+            context.autoSave();
+            System.out.println("Dependent and user account registered successfully and linked to parent! (Data auto-saved to files)");
         } else {
             System.out.println("Failed to register Dependent. Please check ID formats, ensure parent exists as a PolicyHolder, and verify no duplicate accounts.");
         }
@@ -281,8 +283,9 @@ public class Main {
             UserStatus newStatus = (c.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
             c.setStatus(newStatus);
             AuditLogger.log(AppContext.getCurrentActorId(), "SOFT_DELETE_CUSTOMER_" + newStatus, id);
+            context.autoSave();
             System.out.println("Customer " + id + " (" + c.getFullName() + ") account status updated to: " + newStatus
-                    + " (Soft-Delete applied; historical claims and card records preserved).");
+                    + " (Soft-Delete applied; historical records preserved; data auto-saved to files).");
         } else {
             System.out.println("Customer not found with ID: " + id);
         }
@@ -358,7 +361,8 @@ public class Main {
         boolean success = context.getCardRepository().add(card);
         if (success) {
             holder.setInsuranceCard(card);
-            System.out.println("Insurance card registered and linked successfully.");
+            context.autoSave();
+            System.out.println("Insurance card registered and linked successfully. (Data auto-saved to files)");
         } else {
             System.out.println("Failed to register card. Check 10-digit format and ensure card number is unique.");
         }
@@ -396,7 +400,8 @@ public class Main {
 
         boolean success = context.getCardRepository().delete(cardNumber);
         if (success) {
-            System.out.println("Insurance card removed successfully.");
+            context.autoSave();
+            System.out.println("Insurance card removed successfully. (Data auto-saved to files)");
         } else {
             System.out.println("Card not found with number: " + cardNumber);
         }
@@ -614,14 +619,20 @@ public class Main {
 
     private static void viewCustomerClaims(AppContext context, Customer customer) {
         System.out.println("\n----- My Claims & History -----");
+        System.out.println("Current Membership Tier: " + customer.getMembershipTier()
+                + " (Co-pay Discount: " + String.format("%.0f%%", customer.getMembershipTier().getDiscountRate() * 100) + ")");
         List<Claim> all = context.getClaimRepository().getAll();
         int count = 0;
         for (Claim c : all) {
             if (c.getInsuredPersonId().equals(customer.getId())) {
+                double stdCopay = c.getClaimAmount() * 0.20;
+                double discountedCopay = customer.calculatePatientCopay(c.getClaimAmount());
                 System.out.println("Claim ID: " + c.getId()
                         + " | Date: " + c.getClaimDate()
-                        + " | Amount: " + c.getClaimAmount()
-                        + " | Status: " + c.getStatus()
+                        + " | Claim Amount: " + String.format("%,.2f VND", c.getClaimAmount())
+                        + " | Status: [" + c.getStatus() + "]"
+                        + " | Est. Patient Co-pay: " + String.format("%,.2f VND", discountedCopay)
+                        + " (Saved: " + String.format("%,.2f VND", (stdCopay - discountedCopay)) + ")"
                         + " | Exam Date: " + c.getExamDate()
                         + " | Documents: " + c.getDocuments());
                 count++;
@@ -714,7 +725,9 @@ public class Main {
         UserStatus newStatus = (user.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
         user.setStatus(newStatus);
         AuditLogger.log(AppContext.getCurrentActorId(), "TOGGLE_USER_STATUS_" + newStatus, userId);
-        System.out.println("User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus);
+        context.autoSave();
+        System.out.println("User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus
+                + " (Data auto-saved to files)");
     }
 
     private static void adminSearchUserFlow(AppContext context, Scanner sc) {
@@ -984,10 +997,11 @@ public class Main {
         try {
             boolean success = context.getClaimRepository().add(claim);
             if (success) {
-                System.out.println("Claim created successfully with status NEW.");
+                context.autoSave();
+                System.out.println("Claim created successfully with status NEW. (Data auto-saved to files)");
             } else {
                 System.out.println(
-                        "Failed to create claim. Please check ID format, duplicate ID, references, and positive amount.");
+                        "Failed to create claim. Please check ID format, duplicate ID, references, card ownership, and positive amount.");
             }
         } catch (InvalidClaimDateException e) {
             System.out.println("Business Rule Violation (Invalid Claim Date): " + e.getMessage());
@@ -1006,10 +1020,11 @@ public class Main {
 
         boolean success = context.getClaimRepository().addDocument(claimId, documentName);
         if (success) {
-            System.out.println("Document added successfully to claim " + claimId + ".");
+            context.autoSave();
+            System.out.println("Document added successfully to claim " + claimId + ". (Data auto-saved to files)");
         } else {
             System.out.println(
-                    "Failed to add document. Please verify claim ID exists and document format matches ClaimId_CardNumber_Name.pdf.");
+                    "Failed to add document. Please verify claim exists, is not already DONE, and document format matches ClaimId_CardNumber_Name.pdf.");
         }
     }
 
@@ -1030,7 +1045,8 @@ public class Main {
         try {
             boolean success = context.getClaimRepository().updateClaimStatus(claimId, newStatus);
             if (success) {
-                System.out.println("Claim status updated successfully to " + newStatus + ".");
+                context.autoSave();
+                System.out.println("Claim status updated successfully to " + newStatus + ". (Data auto-saved to files)");
             } else {
                 System.out.println("Failed to update status. Claim not found with ID: " + claimId);
             }
@@ -1129,7 +1145,8 @@ public class Main {
 
         boolean success = context.getClaimRepository().delete(claimId);
         if (success) {
-            System.out.println("Claim removed successfully.");
+            context.autoSave();
+            System.out.println("Claim removed successfully. (Data auto-saved to files)");
         } else {
             System.out.println("Claim not found with ID: " + claimId);
         }
