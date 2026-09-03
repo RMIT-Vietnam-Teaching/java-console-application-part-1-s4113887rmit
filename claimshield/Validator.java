@@ -11,6 +11,29 @@ import java.util.regex.Pattern;
  */
 public class Validator {
 
+    // ------------------------------------------------------------------
+    // Free-text field length bounds.
+    // These bounds keep user-supplied strings within a sane range so that
+    // neither an empty field nor an unbounded one can reach the data files.
+    // ------------------------------------------------------------------
+
+    /** Minimum accepted username length. */
+    public static final int USERNAME_MIN_LENGTH = 3;
+    /** Maximum accepted username length. */
+    public static final int USERNAME_MAX_LENGTH = 50;
+    /** Minimum accepted password length. */
+    public static final int PASSWORD_MIN_LENGTH = 4;
+    /** Maximum accepted password length. */
+    public static final int PASSWORD_MAX_LENGTH = 64;
+    /** Minimum accepted full name length. */
+    public static final int NAME_MIN_LENGTH = 2;
+    /** Maximum accepted full name length. */
+    public static final int NAME_MAX_LENGTH = 100;
+    /** Minimum accepted email length. */
+    public static final int EMAIL_MIN_LENGTH = 5;
+    /** Maximum accepted email length. */
+    public static final int EMAIL_MAX_LENGTH = 100;
+
     /**
      * Checks if a customer ID matches the format c-XXXXXXX (7 digits).
      *
@@ -145,5 +168,67 @@ public class Validator {
     public static boolean isPolicyHolder(Customer customer) {
         return customer != null
                 && customer.getCustomerType().equals("PolicyHolder");
+    }
+
+    // ------------------------------------------------------------------
+    // String length validation
+    // ------------------------------------------------------------------
+
+    /**
+     * Checks that a trimmed string's length falls within inclusive bounds.
+     *
+     * @param value the string to measure
+     * @param min   the minimum accepted length (inclusive)
+     * @param max   the maximum accepted length (inclusive)
+     * @return true if value is non-null and its trimmed length is within bounds
+     */
+    public static boolean isValidLength(String value, int min, int max) {
+        if (value == null) {
+            return false;
+        }
+        int length = value.trim().length();
+        return length >= min && length <= max;
+    }
+
+    /**
+     * Checks that a username is within the accepted length range.
+     *
+     * @param username the username to validate
+     * @return true if the username length is accepted
+     */
+    public static boolean isValidUsername(String username) {
+        return isValidLength(username, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH);
+    }
+
+    /**
+     * Checks that a password is within the accepted length range.
+     *
+     * @param password the password to validate
+     * @return true if the password length is accepted
+     */
+    public static boolean isValidPassword(String password) {
+        return isValidLength(password, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH);
+    }
+
+    /**
+     * Checks that a full name is within the accepted length range.
+     *
+     * @param fullName the full name to validate
+     * @return true if the full name length is accepted
+     */
+    public static boolean isValidFullName(String fullName) {
+        return isValidLength(fullName, NAME_MIN_LENGTH, NAME_MAX_LENGTH);
+    }
+
+    /**
+     * Checks that an email address is within the accepted length range and
+     * contains the '@' character separating the local part from the domain.
+     *
+     * @param email the email address to validate
+     * @return true if the email address is accepted
+     */
+    public static boolean isValidEmail(String email) {
+        return isValidLength(email, EMAIL_MIN_LENGTH, EMAIL_MAX_LENGTH)
+                && email.contains("@");
     }
 }

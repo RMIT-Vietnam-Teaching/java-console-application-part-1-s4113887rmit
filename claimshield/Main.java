@@ -131,6 +131,47 @@ public class Main {
     }
 
     /**
+     * Validates the free-text fields shared by every account-registration flow
+     * (username, password, full name and email) against the length bounds
+     * declared in {@link Validator}.
+     * <p>
+     * Centralising the check stops the three registration flows from repeating
+     * the same four tests and guarantees they all enforce identical limits.
+     *
+     * @param username the candidate username
+     * @param password the candidate password
+     * @param fullName the candidate full name
+     * @param email    the candidate email address
+     * @return null when every field is acceptable, otherwise a human-readable
+     *         description of the first violation found
+     */
+    private static String validateAccountFields(
+            String username,
+            String password,
+            String fullName,
+            String email
+    ) {
+        if (!Validator.isValidUsername(username)) {
+            return "Username must be between " + Validator.USERNAME_MIN_LENGTH
+                    + " and " + Validator.USERNAME_MAX_LENGTH + " characters long.";
+        }
+        if (!Validator.isValidPassword(password)) {
+            return "Password must be between " + Validator.PASSWORD_MIN_LENGTH
+                    + " and " + Validator.PASSWORD_MAX_LENGTH + " characters long.";
+        }
+        if (!Validator.isValidFullName(fullName)) {
+            return "Full Name must be between " + Validator.NAME_MIN_LENGTH
+                    + " and " + Validator.NAME_MAX_LENGTH + " characters long.";
+        }
+        if (!Validator.isValidEmail(email)) {
+            return "Email must be between " + Validator.EMAIL_MIN_LENGTH
+                    + " and " + Validator.EMAIL_MAX_LENGTH
+                    + " characters long and contain an '@'.";
+        }
+        return null;
+    }
+
+    /**
      * Flushes every dataset to its persistence file and terminates the JVM with
      * a success status. Invoked both by the explicit "exit" command and by
      * {@link #readLine(Scanner)} when the input stream closes unexpectedly.
@@ -252,42 +293,65 @@ public class Main {
         }
     }
 
+    /**
+     * Admin flow for registering a new PolicyHolder together with the user
+     * account that grants them access to the customer portal.
+     * <p>
+     * Every free-text field is length-checked before the request reaches
+     * {@link AppContext#registerPolicyHolder}, so the operator is told which
+     * field was rejected instead of receiving a generic failure message.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
     private static void adminAddPolicyHolderFlow(AppContext context, Scanner sc) {
-    System.out.println("\n--- Register New PolicyHolder ---");
-    System.out.print("User ID (format u-XXXXXXX): ");
-    String userId = readLine(sc).trim();
+        System.out.println("\n--- Register New PolicyHolder ---");
+        System.out.print("User ID (format u-XXXXXXX): ");
+        String userId = readLine(sc).trim();
 
-    System.out.print("Username: ");
-    String username = readLine(sc).trim();
+        System.out.print("Username: ");
+        String username = readLine(sc).trim();
 
-    System.out.print("Password: ");
-    String password = readLine(sc).trim();
+        System.out.print("Password: ");
+        String password = readLine(sc).trim();
 
-    System.out.print("Full Name: ");
-    String fullName = readLine(sc).trim();
+        System.out.print("Full Name: ");
+        String fullName = readLine(sc).trim();
 
-    System.out.print("Email: ");
-    String email = readLine(sc).trim();
+        System.out.print("Email: ");
+        String email = readLine(sc).trim();
 
-    System.out.print("Customer ID (format c-XXXXXXX): ");
-    String customerId = readLine(sc).trim();
+        System.out.print("Customer ID (format c-XXXXXXX): ");
+        String customerId = readLine(sc).trim();
 
-    // Validate required fields are not empty or blank
-    if (username.isBlank() || fullName.isBlank() || email.isBlank()) {
-        System.out.println("Error: Username, Full Name, and Email must not be empty. Registration aborted.");
-        return;
+        // Enforce the shared free-text length rules. This rejects both blank
+        // and over-long input in one step, naming the offending field.
+        String fieldError = validateAccountFields(username, password, fullName, email);
+        if (fieldError != null) {
+            System.out.println("Error: " + fieldError + " Registration aborted.");
+            return;
+        }
+
+        boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
+        if (success) {
+            context.autoSave();
+            System.out.println("PolicyHolder and user account registered successfully! (Data auto-saved to files)");
+        } else {
+            System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
+        }
     }
 
-    boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
-    if (success) {
-        context.autoSave();
-        System.out.println("PolicyHolder and user account registered successfully! (Data auto-saved to files)");
-    } else {
-        System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
-    }
-}
 
-
+    /**
+     * Admin flow for registering a new Dependent and linking it to an existing
+     * PolicyHolder.
+     * <p>
+     * Applies the same free-text length rules as the PolicyHolder flow so both
+     * registration paths behave consistently for the operator.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
     private static void adminAddDependentFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Register New Dependent ---");
         System.out.print("User ID (format u-XXXXXXX): ");
@@ -310,6 +374,13 @@ public class Main {
 
         System.out.print("Parent PolicyHolder ID (c-XXXXXXX): ");
         String parentId = readLine(sc).trim();
+
+        // Enforce the shared free-text length rules before registering.
+        String fieldError = validateAccountFields(username, password, fullName, email);
+        if (fieldError != null) {
+            System.out.println("Error: " + fieldError + " Registration aborted.");
+            return;
+        }
 
         boolean success = context.registerDependent(userId, username, password, fullName, email, customerId, parentId);
         if (success) {
@@ -1031,6 +1102,8 @@ public class Main {
      * Admin flow for provisioning a new staff account (ADMIN or OFFICER).
      * Collects the account details, delegates validation and registration to
      * AppContext, then persists immediately.
+     * <p>
+     * Applies the same free-text length rules as every other registration flow.
      *
      * @param context the shared application context
      * @param sc      the active console scanner
@@ -1053,6 +1126,13 @@ public class Main {
 
         System.out.print("Email: ");
         String email = readLine(sc).trim();
+
+        // Enforce the shared free-text length rules before creating the account.
+        String fieldError = validateAccountFields(username, password, fullName, email);
+        if (fieldError != null) {
+            System.out.println("Error: " + fieldError + " Registration aborted.");
+            return;
+        }
 
         boolean created = (role == UserRole.ADMIN)
                 ? context.registerAdmin(userId, username, password, fullName, email)
