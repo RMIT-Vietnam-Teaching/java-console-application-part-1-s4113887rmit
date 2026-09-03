@@ -153,7 +153,7 @@ Other customer accounts (`zoro`, `nami`, `natsu`, `erza`, `sherlock`, `haaland`,
 
 ## 5. Architecture Overview
 
-28 source files in `claimshield/`, organised into six groups.
+35 source files in `claimshield/`, organised into seven groups.
 
 ```
 claimshield/
@@ -167,6 +167,8 @@ claimshield/
 ├── exceptions               ClaimShieldException (abstract),
 │                            InvalidClaimDateException,
 │                            InvalidStatusTransitionException
+├── ui / console controllers AdminMenu, OfficerMenu, CustomerPortal,
+│                            CustomerConsole, CardConsole, ClaimConsole, ConsoleSupport
 └── infrastructure           Main, AppContext, AuditLogger, Validator
 ```
 
@@ -208,10 +210,10 @@ dedicated interface rather than a shared one-size-fits-all contract:
 
 | Interface | Repository | Extra operations |
 |---|---|---|
-| `UserManageable` | `UserRepository` | `authenticate`, `getByUsername`, `getUserByCustomerId` |
+| `UserManageable` | `UserRepository` | `authenticate` |
 | `CustomerManageable` | `CustomerRepository` | `filterByType`, `filterByParentPolicyHolder`, `searchByName` |
 | `CardManageable` | `CardRepository` | `getByCardHolderId`, `getByPolicyOwnerId`, `filterExpiringBefore` |
-| `ClaimManageable` | `ClaimRepository` | `filterByStatus`, `filterByDateRange`, `filterByPolicyHolderFamily` |
+| `ClaimManageable` | `ClaimRepository` | `filterByStatus`, `filterByDateRange`, `filterByPolicyHolderFamily`, `filterByCardNumber` |
 
 Repositories also carry operations that are not part of the shared contract — for
 example `ClaimRepository.updateClaimStatus`, `addDocument`, and the payout analytics
@@ -316,13 +318,11 @@ Notes:
 
 The full UML class diagram for the final architecture is at:
 
-**`docs/ClaimShield_Class_Diagram.svg`**
+**`docs/class_diagram.png`**
 
-It is a 2240 × 2420 vector SVG covering all 28 types — entities, interfaces,
-repositories, enums, exceptions and infrastructure — with generalisation,
-realisation, association, dependency and composition edges, plus a legend.
-Because it is vector artwork it stays sharp at any zoom level and is suitable for
-direct inclusion in the report or the submission.
+It covers all core domain types, interfaces, repositories, enums, exceptions, and infrastructure, formatted into two clear sections:
+- **Diagram 1:** User Hierarchy & Domain Model
+- **Diagram 2:** Service Layer - Interfaces, Repositories & Orchestrator
 
 ---
 
@@ -331,7 +331,7 @@ direct inclusion in the report or the submission.
 ```
 .
 ├── README.md
-├── claimshield/            # 28 Java source files (package claimshield)
+├── claimshield/            # 35 Java source files (package claimshield)
 ├── data/                   # persistence files (loaded at start-up)
 │   ├── cards.txt
 │   ├── claims.txt
@@ -339,7 +339,7 @@ direct inclusion in the report or the submission.
 │   ├── logs.txt
 │   └── users.txt
 ├── docs/
-│   └── ClaimShield_Class_Diagram.svg
+│   └── class_diagram.png
 └── out/                    # compiled .class files (generated, git-ignored)
 ```
 
