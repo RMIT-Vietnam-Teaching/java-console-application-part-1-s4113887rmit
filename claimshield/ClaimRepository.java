@@ -234,6 +234,20 @@ public class ClaimRepository implements ClaimManageable {
     }
 
     @Override
+    public List<Claim> filterByCardNumber(String cardNumber) {
+        List<Claim> result = new ArrayList<>();
+        if (cardNumber == null) {
+            return result;
+        }
+        for (Claim c : claims) {
+            if (cardNumber.equals(c.getCardNumber())) {
+                result.add(c);
+            }
+        }
+        return result;
+    }
+
+    @Override
     public List<Claim> filterByStatus(ClaimStatus status) {
         List<Claim> result = new ArrayList<>();
         if (status == null) {

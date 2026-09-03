@@ -36,4 +36,12 @@ public interface ClaimManageable extends Manageable<Claim> {
      * @return a List of claims for the entire policyholder family
      */
     List<Claim> filterByPolicyHolderFamily(String policyHolderId);
+
+    /**
+     * Filters claims associated with a specific insurance card.
+     *
+     * @param cardNumber the card number the claims are filed against
+     * @return a List of claims referencing that card
+     */
+    List<Claim> filterByCardNumber(String cardNumber);
 }

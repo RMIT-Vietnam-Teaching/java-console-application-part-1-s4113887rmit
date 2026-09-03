@@ -63,8 +63,19 @@ public class AuditLogger {
      * @return a List of log entry records, newest first
      */
     public static List<AuditEntry> readLogsMostRecentFirst() {
+        return readLogsMostRecentFirst(LOG_FILE_PATH);
+    }
+
+    /**
+     * Reads all audit log entries from the given file, returned in
+     * reverse-chronological order (most recent first).
+     *
+     * @param filePath the path to the audit log file
+     * @return a List of log entry records, newest first
+     */
+    public static List<AuditEntry> readLogsMostRecentFirst(String filePath) {
         List<AuditEntry> entries = new ArrayList<>();
-        File logFile = new File(LOG_FILE_PATH);
+        File logFile = new File(filePath);
         if (!logFile.exists()) {
             return entries;
         }

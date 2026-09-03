@@ -13,13 +13,23 @@ import java.util.List;
  * @author Nguyen Ngoc Quang Dang - S4113887
  *
  * Repository responsible for insurance card entity management, CRUD operations,
- * and persistence to cards.txt.
+ * search filtering, and persistence to cards.txt.
  */
-public class CardRepository implements Manageable<InsuranceCard> {
+public class CardRepository implements CardManageable {
     private ArrayList<InsuranceCard> cards;
+    private ClaimRepository claimRepository;
 
     public CardRepository() {
         this.cards = new ArrayList<>();
+    }
+
+    public CardRepository(ClaimRepository claimRepository) {
+        this.cards = new ArrayList<>();
+        this.claimRepository = claimRepository;
+    }
+
+    public void setClaimRepository(ClaimRepository claimRepository) {
+        this.claimRepository = claimRepository;
     }
 
     @Override
@@ -66,11 +76,32 @@ public class CardRepository implements Manageable<InsuranceCard> {
         }
         InsuranceCard target = getById(id);
         if (target != null) {
+            // Refuse to delete a card that still has claims attached: doing so would
+            // orphan those claims (they would reference a card that no longer exists).
+            // Removal is only permitted once no claims reference the card.
+            if (hasClaimsForCard(id)) {
+                return false;
+            }
             cards.remove(target);
             AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_INSURANCE_CARD", id);
             return true;
         }
         return false;
+    }
+
+    /**
+     * Reports whether any claim currently references the given card number.
+     * Used as a guard before card deletion so that removing a card cannot leave
+     * orphaned claims pointing at a card that no longer exists.
+     *
+     * @param cardNumber the card number to check
+     * @return true if at least one claim references the card, false otherwise
+     */
+    public boolean hasClaimsForCard(String cardNumber) {
+        if (cardNumber == null || claimRepository == null) {
+            return false;
+        }
+        return !claimRepository.filterByCardNumber(cardNumber).isEmpty();
     }
 
     @Override
@@ -92,6 +123,7 @@ public class CardRepository implements Manageable<InsuranceCard> {
      * @param cardHolderId the customer ID of the card holder
      * @return the matching InsuranceCard, or null if not found
      */
+    @Override
     public InsuranceCard getByCardHolderId(String cardHolderId) {
         if (cardHolderId == null) {
             return null;
@@ -102,6 +134,50 @@ public class CardRepository implements Manageable<InsuranceCard> {
             }
         }
         return null;
+    }
+
+    /**
+     * Finds all insurance cards paid for by a specific policy owner. For a family
+     * plan this includes both the owner's own card and the cards issued to their
+     * dependents, because every dependent card records the covering PolicyHolder
+     * in its policyOwnerId field.
+     *
+     * @param policyOwnerId the customer ID of the policy owner
+     * @return a List of insurance cards funded by that policy owner
+     */
+    @Override
+    public List<InsuranceCard> getByPolicyOwnerId(String policyOwnerId) {
+        List<InsuranceCard> result = new ArrayList<>();
+        if (policyOwnerId == null) {
+            return result;
+        }
+        for (InsuranceCard card : cards) {
+            if (policyOwnerId.equals(card.getPolicyOwnerId())) {
+                result.add(card);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Finds all insurance cards that expire strictly before a given instant,
+     * supporting expiry reporting and renewal campaigns.
+     *
+     * @param deadline the exclusive upper bound on the expiration date
+     * @return a List of insurance cards expiring before the deadline
+     */
+    @Override
+    public List<InsuranceCard> filterExpiringBefore(LocalDateTime deadline) {
+        List<InsuranceCard> result = new ArrayList<>();
+        if (deadline == null) {
+            return result;
+        }
+        for (InsuranceCard card : cards) {
+            if (card.getExpirationDate() != null && card.getExpirationDate().isBefore(deadline)) {
+                result.add(card);
+            }
+        }
+        return result;
     }
 
     @Override

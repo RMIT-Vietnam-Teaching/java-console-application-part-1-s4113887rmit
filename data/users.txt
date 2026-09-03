@@ -22,5 +22,5 @@ u-1000017,sherlock,pass123,Sherlock Holmes,sherlock@bakerstreet.com,CUSTOMER,ACT
 u-1000018,lucy,pass123,Lucy Heartfilia,lucy@fairytail.com,CUSTOMER,ACTIVE,c-1000018
 u-1000019,gray,pass123,Gray Fullbuster,gray@fairytail.com,CUSTOMER,ACTIVE,c-1000019
 u-1000020,watson,pass123,John Watson,watson@bakerstreet.com,CUSTOMER,ACTIVE,c-1000020
-u-2000001,testuser,pass123,Test User,testuser@example.com,CUSTOMER,ACTIVE,c-2000001
-u-1000000,testdemo,pass123,Test user demo,testdemo@example.com,CUSTOMER,ACTIVE,c-1000000
+u-1000021,haaland,pass123,Erling Haaland,haaland@mancity.com,CUSTOMER,ACTIVE,c-1000021
+u-1000022,saka,pass123,Bukayo Saka,saka@arsenal.com,CUSTOMER,ACTIVE,c-1000022

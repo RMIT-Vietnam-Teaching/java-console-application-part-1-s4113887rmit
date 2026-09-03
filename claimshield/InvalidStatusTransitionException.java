@@ -5,8 +5,12 @@ package claimshield;
  *
  * Exception thrown when an invalid claim status transition is attempted
  * (e.g., transitioning backward or skipping required stages).
+ * <p>
+ * Raised by {@link ClaimRepository#updateClaimStatus} when a claim already
+ * marked DONE is modified, or when a transition attempts to move more than one
+ * step forward through the NEW -&gt; PROCESSING -&gt; DONE workflow.
  */
-public class InvalidStatusTransitionException extends Exception {
+public class InvalidStatusTransitionException extends ClaimShieldException {
     private static final long serialVersionUID = 1L;
 
     /**

@@ -5,8 +5,12 @@ package claimshield;
  *
  * Exception thrown when a claim date or exam date is invalid or violates
  * chronological business constraints.
+ * <p>
+ * Raised by {@link ClaimRepository#add} when the exam date falls after the
+ * claim date, or when it is not strictly before the expiration date of the
+ * insurance card the claim is lodged against.
  */
-public class InvalidClaimDateException extends Exception {
+public class InvalidClaimDateException extends ClaimShieldException {
     private static final long serialVersionUID = 1L;
 
     /**

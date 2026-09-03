@@ -1,5 +1,8 @@
 package claimshield;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
  *
@@ -23,6 +26,7 @@ public class AppContext {
         this.customerRepository = new CustomerRepository();
         this.cardRepository = new CardRepository();
         this.claimRepository = new ClaimRepository(customerRepository, cardRepository);
+        this.cardRepository.setClaimRepository(this.claimRepository);
     }
 
     public static void setCurrentSessionUser(User user) {
@@ -43,6 +47,18 @@ public class AppContext {
     private String customersPath = "data/customers.txt";
     private String cardsPath = "data/cards.txt";
     private String claimsPath = "data/claims.txt";
+    private String logsPath = "data/logs.txt";
+
+    private List<AuditLogger.AuditEntry> auditTrail = new ArrayList<>();
+
+    /**
+     * Returns the audit trail entries loaded from logs.txt during startup.
+     *
+     * @return a List of audit entries, most recent first
+     */
+    public List<AuditLogger.AuditEntry> getAuditTrail() {
+        return new ArrayList<>(auditTrail);
+    }
 
     public UserRepository getUserRepository() {
         return userRepository;
@@ -71,17 +87,21 @@ public class AppContext {
      * dependents to policyholders)
      * 5. Pass 3: Load claims.txt into ClaimRepository and accumulate total claim
      * amounts
+     * 6. Pass 4: Load logs.txt into the in-memory audit trail
      *
      * @param usersPath     file path to users.txt
      * @param customersPath file path to customers.txt
      * @param cardsPath     file path to cards.txt
      * @param claimsPath    file path to claims.txt
+     * @param logsPath      file path to logs.txt
      */
-    public void loadAll(String usersPath, String customersPath, String cardsPath, String claimsPath) {
+    public void loadAll(String usersPath, String customersPath, String cardsPath, String claimsPath,
+            String logsPath) {
         this.usersPath = usersPath;
         this.customersPath = customersPath;
         this.cardsPath = cardsPath;
         this.claimsPath = claimsPath;
+        this.logsPath = logsPath;
 
         // 1. Pass 1a: Load all user accounts from users.txt
         userRepository.loadUsersFromFile(usersPath);
@@ -100,6 +120,33 @@ public class AppContext {
 
         // 6. Update cumulative claim totals on each customer
         calculateCustomerClaimTotals();
+
+        // 7. Pass 4: Load the audit trail (logs.txt) into memory on startup
+        loadAuditLog();
+    }
+
+    /**
+     * Overload of loadAll() that uses the default logs.txt path for the audit trail.
+     *
+     * @param usersPath     file path to users.txt
+     * @param customersPath file path to customers.txt
+     * @param cardsPath     file path to cards.txt
+     * @param claimsPath    file path to claims.txt
+     */
+    public void loadAll(String usersPath, String customersPath, String cardsPath, String claimsPath) {
+        loadAll(usersPath, customersPath, cardsPath, claimsPath, logsPath);
+    }
+
+    /**
+     * Loads the persisted audit trail from logs.txt into the in-memory
+     * AuditTrail, per the requirement that all entities (including logs.txt)
+     * are read from local text files on startup.
+     *
+     * @return the number of audit entries loaded
+     */
+    public int loadAuditLog() {
+        auditTrail = AuditLogger.readLogsMostRecentFirst(logsPath);
+        return auditTrail.size();
     }
 
     /**
@@ -257,6 +304,89 @@ public class AppContext {
         userRepository.registerCustomerUser(dependent);
         ((PolicyHolder) parent).addDependent(dependent);
         return true;
+    }
+
+    /**
+     * Atomically registers a new Administrator account in the UserRepository.
+     * Validates the user ID format and rejects duplicate user IDs or usernames.
+     *
+     * @param userId   unique user ID (u-7digits)
+     * @param username login username
+     * @param password login password
+     * @param fullName full name of the administrator
+     * @param email    email address
+     * @return true if registered successfully, false if validation fails or a duplicate exists
+     */
+    public boolean registerAdmin(
+            String userId,
+            String username,
+            String password,
+            String fullName,
+            String email) {
+        return registerStaffUser(userId, username, password, fullName, email, UserRole.ADMIN);
+    }
+
+    /**
+     * Atomically registers a new Claims Officer account in the UserRepository.
+     * Validates the user ID format and rejects duplicate user IDs or usernames.
+     *
+     * @param userId   unique user ID (u-7digits)
+     * @param username login username
+     * @param password login password
+     * @param fullName full name of the claims officer
+     * @param email    email address
+     * @return true if registered successfully, false if validation fails or a duplicate exists
+     */
+    public boolean registerOfficer(
+            String userId,
+            String username,
+            String password,
+            String fullName,
+            String email) {
+        return registerStaffUser(userId, username, password, fullName, email, UserRole.OFFICER);
+    }
+
+    /**
+     * Shared registration routine for non-customer staff accounts (ADMIN and OFFICER).
+     * Enforces the u-7digits identifier format, non-blank credential fields, and
+     * uniqueness of both user ID and username before delegating to UserRepository.
+     *
+     * @param userId   unique user ID (u-7digits)
+     * @param username login username
+     * @param password login password
+     * @param fullName full name of the staff member
+     * @param email    email address
+     * @param role     the staff role to assign (ADMIN or OFFICER)
+     * @return true if registered successfully, false if validation fails or a duplicate exists
+     */
+    private boolean registerStaffUser(
+            String userId,
+            String username,
+            String password,
+            String fullName,
+            String email,
+            UserRole role) {
+        if (!Validator.isValidUserId(userId)) {
+            return false;
+        }
+        if (username == null || username.trim().isEmpty()
+                || password == null || password.trim().isEmpty()
+                || fullName == null || fullName.trim().isEmpty()
+                || email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        if (userRepository.getById(userId) != null
+                || userRepository.getByUsername(username) != null) {
+            return false;
+        }
+
+        User staffUser = (role == UserRole.ADMIN)
+                ? new Admin(userId.trim(), username.trim(), password.trim(),
+                        fullName.trim(), email.trim(), UserStatus.ACTIVE)
+                : new ClaimsOfficer(userId.trim(), username.trim(), password.trim(),
+                        fullName.trim(), email.trim(), UserStatus.ACTIVE);
+
+        return userRepository.add(staffUser);
     }
 
     /**

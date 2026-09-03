@@ -12,9 +12,9 @@ import java.util.List;
  * @author Nguyen Ngoc Quang Dang - S4113887
  *
  * Repository responsible for customer entity management, CRUD operations,
- * and persistence to customers.txt (4-column business data).
+ * search filtering, and persistence to customers.txt (4-column business data).
  */
-public class CustomerRepository implements Manageable<Customer> {
+public class CustomerRepository implements CustomerManageable {
     private ArrayList<Customer> customers;
 
     public CustomerRepository() {
@@ -40,7 +40,7 @@ public class CustomerRepository implements Manageable<Customer> {
         }
         if (customer.getCustomerType().equals("Dependent")) {
             Customer parent = getById(customer.getParentPolicyHolderId());
-            if (parent != null && !Validator.isPolicyHolder(parent)) {
+            if (parent == null || !Validator.isPolicyHolder(parent)) {
                 return false;
             }
         }
@@ -94,6 +94,71 @@ public class CustomerRepository implements Manageable<Customer> {
     @Override
     public List<Customer> getAll() {
         return new ArrayList<>(customers);
+    }
+
+    /**
+     * Filters customers by their position in the Customer hierarchy.
+     * Matching is case-insensitive on the values returned by
+     * {@link Customer#getCustomerType()}.
+     *
+     * @param customerType "PolicyHolder" or "Dependent"
+     * @return a List of matching customers, empty if the type is unknown
+     */
+    @Override
+    public List<Customer> filterByType(String customerType) {
+        List<Customer> result = new ArrayList<>();
+        if (customerType == null) {
+            return result;
+        }
+        for (Customer c : customers) {
+            if (c.getCustomerType().equalsIgnoreCase(customerType.trim())) {
+                result.add(c);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Filters customers down to the dependents covered under a given
+     * PolicyHolder, resolved through the polymorphic
+     * {@link Customer#getParentPolicyHolderId()} accessor.
+     *
+     * @param policyHolderId the customer ID of the covering PolicyHolder
+     * @return a List of dependents linked to that PolicyHolder
+     */
+    @Override
+    public List<Customer> filterByParentPolicyHolder(String policyHolderId) {
+        List<Customer> result = new ArrayList<>();
+        if (policyHolderId == null) {
+            return result;
+        }
+        for (Customer c : customers) {
+            if (policyHolderId.equals(c.getParentPolicyHolderId())) {
+                result.add(c);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Performs a case-insensitive partial-match search on customer full names.
+     *
+     * @param keyword the name fragment to search for
+     * @return a List of customers whose full name contains the keyword
+     */
+    @Override
+    public List<Customer> searchByName(String keyword) {
+        List<Customer> result = new ArrayList<>();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return result;
+        }
+        String needle = keyword.trim().toLowerCase();
+        for (Customer c : customers) {
+            if (c.getFullName() != null && c.getFullName().toLowerCase().contains(needle)) {
+                result.add(c);
+            }
+        }
+        return result;
     }
 
     /**

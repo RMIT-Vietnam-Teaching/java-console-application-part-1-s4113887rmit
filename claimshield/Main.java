@@ -1,6 +1,7 @@
 package claimshield;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -16,23 +17,34 @@ public class Main {
     private static final String CUSTOMERS_FILE = "data/customers.txt";
     private static final String CARDS_FILE = "data/cards.txt";
     private static final String CLAIMS_FILE = "data/claims.txt";
+    private static final String LOGS_FILE = "data/logs.txt";
+
+    /**
+     * Shared reference to the live application context, held statically so that
+     * {@link #readLine(Scanner)} can flush every dataset to disk when the input
+     * stream closes unexpectedly. Without it, an abrupt end-of-input would lose
+     * any changes made since the last auto-save.
+     */
+    private static AppContext appContext;
 
     public static void main(String[] args) {
-        // 1. Print exact required banner
-        System.out.println("=========================================");
+        // 1. Print the standardized banner required by the assignment brief
+        System.out.println("=======================================");
         System.out.println("COSC3110/3111 HEALTH INSURANCE SYSTEM");
-        System.out.println("       Student ID: S4113887");
-        System.out.println("     Student Name: Nguyen Ngoc Quang Dang");
-        System.out.println("=========================================");
+        System.out.println("                        Student ID: s4113887");
+        System.out.println("                    Student Name: Nguyen Ngoc Quang Dang");
+        System.out.println("=======================================");
 
-        // 2. Instantiate AppContext and load all datasets
+        // 2. Instantiate AppContext and load all datasets (including the logs.txt audit trail)
         AppContext context = new AppContext();
-        context.loadAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE);
+        appContext = context;
+        context.loadAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE, LOGS_FILE);
         System.out.println("\nSystem loaded: "
                 + context.getUserRepository().getAll().size() + " users, "
                 + context.getCustomerRepository().getAll().size() + " customers, "
                 + context.getCardRepository().getAll().size() + " cards, "
-                + context.getClaimRepository().getAll().size() + " claims.");
+                + context.getClaimRepository().getAll().size() + " claims, "
+                + context.getAuditTrail().size() + " audit log entries.");
 
         Scanner sc = new Scanner(System.in);
 
@@ -41,22 +53,24 @@ public class Main {
         while (appRunning) {
             System.out.println("\n===== LOGIN SYSTEM =====");
             System.out.print("Username (or 'exit' to quit): ");
-            String username = sc.nextLine().trim();
+            String username = readLine(sc).trim();
 
             if ("exit".equalsIgnoreCase(username)) {
-                System.out.println("Saving all data before exit...");
-                context.saveAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE);
-                System.out.println("All data saved successfully. Goodbye!");
+                shutdown();
                 appRunning = false;
                 break;
             }
 
             System.out.print("Password: ");
-            String password = sc.nextLine();
+            String password = readLine(sc);
 
             User currentUser = context.getUserRepository().authenticate(username, password);
             if (currentUser == null) {
-                AuditLogger.log(username, "LOGIN_FAILED", username);
+                // The actor is unauthenticated, so the userId column carries the
+                // sentinel "UNKNOWN" and the attempted username is recorded as the
+                // target entity. This keeps the 4-column audit format
+                // (timestamp,userId,actionPerformed,targetEntityId) intact.
+                AuditLogger.log("UNKNOWN", "LOGIN_FAILED", username);
                 System.out.println("Login failed! Invalid username, password, or account is inactive. Please try again.");
                 continue;
             }
@@ -92,10 +106,51 @@ public class Main {
     }
 
     // =========================================================================
+    // CONSOLE INPUT HANDLING & GRACEFUL SHUTDOWN
+    // =========================================================================
+
+    /**
+     * Reads one line of console input, gracefully terminating the application if
+     * the input stream has already ended.
+     * <p>
+     * Calling {@link Scanner#nextLine()} directly throws
+     * {@link java.util.NoSuchElementException} once stdin is exhausted - for
+     * example when the user presses Ctrl-D or when the program is driven from a
+     * pipe that runs out of input. That would abandon the JVM with a raw stack
+     * trace and lose every change made since the last auto-save. Routing all
+     * reads through this helper guarantees the datasets are always flushed first.
+     *
+     * @param sc the active console scanner
+     * @return the line read, never null
+     */
+    private static String readLine(Scanner sc) {
+        if (!sc.hasNextLine()) {
+            shutdown();
+        }
+        return sc.nextLine();
+    }
+
+    /**
+     * Flushes every dataset to its persistence file and terminates the JVM with
+     * a success status. Invoked both by the explicit "exit" command and by
+     * {@link #readLine(Scanner)} when the input stream closes unexpectedly.
+     */
+    private static void shutdown() {
+        System.out.println("\nSaving all data before exit...");
+        if (appContext != null) {
+            appContext.saveAll(USERS_FILE, CUSTOMERS_FILE, CARDS_FILE, CLAIMS_FILE);
+        }
+        System.out.println("All data saved successfully. Goodbye!");
+        System.exit(0);
+    }
+
+    // =========================================================================
     // ADMIN MENU & OPERATIONS
     // =========================================================================
 
     private static void adminMenuLoop(AppContext context, Admin admin, Scanner sc) {
+        // Record the start of this administrative session in the audit trail
+        AuditLogger.log(admin.getUserId(), "ADMIN_SESSION_START", admin.getUserId());
         boolean inSession = true;
         while (inSession) {
             System.out.println("\n========== ADMIN MAIN MENU ==========");
@@ -108,7 +163,7 @@ public class Main {
             System.out.println("7. Save All Changes to Files");
             System.out.println("8. Logout to Login Screen");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -151,10 +206,14 @@ public class Main {
             System.out.println("2. Add New Dependent (with User Account)");
             System.out.println("3. View All Customers & Details");
             System.out.println("4. View Customer by ID");
-            System.out.println("5. Toggle Customer Status (Soft-Delete / Deactivate / Reactivate)");
-            System.out.println("6. Back to Admin Menu");
+            System.out.println("5. Search Customer by Name");
+            System.out.println("6. List Customers by Type (PolicyHolder / Dependent)");
+            System.out.println("7. List Dependents Covered by a PolicyHolder");
+            System.out.println("8. Update Customer Details");
+            System.out.println("9. Toggle Customer Status (Soft-Delete / Deactivate / Reactivate)");
+            System.out.println("10. Back to Admin Menu");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -170,9 +229,21 @@ public class Main {
                     viewCustomerByIdFlow(context, sc);
                     break;
                 case "5":
-                    adminSoftDeleteCustomerFlow(context, sc);
+                    searchCustomerByNameFlow(context, sc);
                     break;
                 case "6":
+                    listCustomersByTypeFlow(context, sc);
+                    break;
+                case "7":
+                    listDependentsOfPolicyHolderFlow(context, sc);
+                    break;
+                case "8":
+                    adminUpdateCustomerFlow(context, sc);
+                    break;
+                case "9":
+                    adminSoftDeleteCustomerFlow(context, sc);
+                    break;
+                case "10":
                     back = true;
                     break;
                 default:
@@ -182,24 +253,57 @@ public class Main {
     }
 
     private static void adminAddPolicyHolderFlow(AppContext context, Scanner sc) {
+    System.out.println("\n--- Register New PolicyHolder ---");
+    System.out.print("User ID (format u-XXXXXXX): ");
+    String userId = readLine(sc).trim();
+
+    System.out.print("Username: ");
+    String username = readLine(sc).trim();
+
+    System.out.print("Password: ");
+    String password = readLine(sc).trim();
+
+    System.out.print("Full Name: ");
+    String fullName = readLine(sc).trim();
+
+    System.out.print("Email: ");
+    String email = readLine(sc).trim();
+
+    System.out.print("Customer ID (format c-XXXXXXX): ");
+    String customerId = readLine(sc).trim();
+
+    // Validate required fields are not empty or blank
+    if (username.isBlank() || fullName.isBlank() || email.isBlank()) {
+        System.out.println("Error: Username, Full Name, and Email must not be empty. Registration aborted.");
+        return;
+    }
+
+    boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
+    if (success) {
+        context.autoSave();
+        System.out.println("PolicyHolder and user account registered successfully! (Data auto-saved to files)");
+    } else {
+        System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
+    }
+}
         System.out.println("\n--- Register New PolicyHolder ---");
         System.out.print("User ID (format u-XXXXXXX): ");
-        String userId = sc.nextLine().trim();
+        String userId = readLine(sc).trim();
 
         System.out.print("Username: ");
-        String username = sc.nextLine().trim();
+        String username = readLine(sc).trim();
 
         System.out.print("Password: ");
-        String password = sc.nextLine().trim();
+        String password = readLine(sc).trim();
 
         System.out.print("Full Name: ");
-        String fullName = sc.nextLine().trim();
+        String fullName = readLine(sc).trim();
 
         System.out.print("Email: ");
-        String email = sc.nextLine().trim();
+        String email = readLine(sc).trim();
 
         System.out.print("Customer ID (format c-XXXXXXX): ");
-        String customerId = sc.nextLine().trim();
+        String customerId = readLine(sc).trim();
 
         boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
         if (success) {
@@ -213,25 +317,25 @@ public class Main {
     private static void adminAddDependentFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Register New Dependent ---");
         System.out.print("User ID (format u-XXXXXXX): ");
-        String userId = sc.nextLine().trim();
+        String userId = readLine(sc).trim();
 
         System.out.print("Username: ");
-        String username = sc.nextLine().trim();
+        String username = readLine(sc).trim();
 
         System.out.print("Password: ");
-        String password = sc.nextLine().trim();
+        String password = readLine(sc).trim();
 
         System.out.print("Full Name: ");
-        String fullName = sc.nextLine().trim();
+        String fullName = readLine(sc).trim();
 
         System.out.print("Email: ");
-        String email = sc.nextLine().trim();
+        String email = readLine(sc).trim();
 
         System.out.print("Customer ID (format c-XXXXXXX): ");
-        String customerId = sc.nextLine().trim();
+        String customerId = readLine(sc).trim();
 
         System.out.print("Parent PolicyHolder ID (c-XXXXXXX): ");
-        String parentId = sc.nextLine().trim();
+        String parentId = readLine(sc).trim();
 
         boolean success = context.registerDependent(userId, username, password, fullName, email, customerId, parentId);
         if (success) {
@@ -250,20 +354,180 @@ public class Main {
             return;
         }
         for (Customer c : all) {
-            System.out.println("ID: " + c.getId()
-                    + " | Name: " + c.getFullName()
-                    + " | Type: " + c.getCustomerType()
-                    + " | Tier: " + c.getMembershipTier()
-                    + " | Total Claim Amount: " + c.getTotalClaimAmount()
-                    + " | Card: " + (c.getInsuranceCard() != null ? c.getInsuranceCard().getCardNumber() : "None")
-                    + " | User: " + (c.getUsername() != null ? c.getUsername() : "N/A"));
+            printCustomerRow(c);
+        }
+    }
+
+    /**
+     * Prints a single customer in the shared one-line directory format reused by
+     * every customer listing and search result screen.
+     *
+     * @param c the customer to render
+     */
+    private static void printCustomerRow(Customer c) {
+        System.out.println("ID: " + c.getId()
+                + " | Name: " + c.getFullName()
+                + " | Type: " + c.getCustomerType()
+                + " | Tier: " + c.getMembershipTier()
+                + " | Total Claim Amount: " + c.getTotalClaimAmount()
+                + " | Card: " + (c.getInsuranceCard() != null ? c.getInsuranceCard().getCardNumber() : "None")
+                + " | User: " + (c.getUsername() != null ? c.getUsername() : "N/A"));
+    }
+
+    /**
+     * Admin flow for the CustomerManageable name search filter.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void searchCustomerByNameFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Search Customer by Name ---");
+        System.out.print("Enter name (or part of a name): ");
+        String keyword = readLine(sc).trim();
+
+        List<Customer> matches = context.getCustomerRepository().searchByName(keyword);
+        if (matches.isEmpty()) {
+            System.out.println("No customers found matching '" + keyword + "'.");
+            return;
+        }
+        System.out.println("Found " + matches.size() + " customer(s) matching '" + keyword + "':");
+        for (Customer c : matches) {
+            printCustomerRow(c);
+        }
+    }
+
+    /**
+     * Admin flow for the CustomerManageable type filter, which reports over the
+     * PolicyHolder / Dependent half of the Customer hierarchy.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void listCustomersByTypeFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- List Customers by Type ---");
+        System.out.print("Customer type (PolicyHolder / Dependent): ");
+        String type = readLine(sc).trim();
+
+        List<Customer> matches = context.getCustomerRepository().filterByType(type);
+        if (matches.isEmpty()) {
+            System.out.println("No customers of type '" + type + "'. Valid types: PolicyHolder, Dependent.");
+            return;
+        }
+        System.out.println("Found " + matches.size() + " customer(s) of type '" + type + "':");
+        for (Customer c : matches) {
+            printCustomerRow(c);
+        }
+    }
+
+    /**
+     * Admin flow for the CustomerManageable dependents filter, resolving a family
+     * group from the covering PolicyHolder's customer ID.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void listDependentsOfPolicyHolderFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Dependents Covered by a PolicyHolder ---");
+        System.out.print("Enter PolicyHolder Customer ID (c-XXXXXXX): ");
+        String policyHolderId = readLine(sc).trim();
+
+        Customer parent = context.getCustomerRepository().getById(policyHolderId);
+        if (parent == null) {
+            System.out.println("No customer found with ID: " + policyHolderId);
+            return;
+        }
+        if (!Validator.isPolicyHolder(parent)) {
+            System.out.println("Customer " + policyHolderId + " (" + parent.getFullName()
+                    + ") is a Dependent, not a PolicyHolder, and cannot cover a family group.");
+            return;
+        }
+
+        List<Customer> dependents = context.getCustomerRepository().filterByParentPolicyHolder(policyHolderId);
+        System.out.println("PolicyHolder: " + parent.getFullName() + " (" + policyHolderId + ")");
+        if (dependents.isEmpty()) {
+            System.out.println("No dependents registered under this policy.");
+            return;
+        }
+        System.out.println("Found " + dependents.size() + " dependent(s):");
+        for (Customer c : dependents) {
+            printCustomerRow(c);
+        }
+    }
+
+    /**
+     * Admin flow for the CardManageable card-holder lookup.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void findCardByHolderFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Find Insurance Card by Card Holder ---");
+        System.out.print("Enter Card Holder Customer ID (c-XXXXXXX): ");
+        String holderId = readLine(sc).trim();
+
+        InsuranceCard card = context.getCardRepository().getByCardHolderId(holderId);
+        if (card != null) {
+            System.out.println(card);
+        } else {
+            System.out.println("No insurance card issued to customer ID: " + holderId);
+        }
+    }
+
+    /**
+     * Admin flow for the CardManageable policy-owner filter, which returns the
+     * whole family plan funded by one PolicyHolder.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void viewCardsByPolicyOwnerFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Insurance Cards Funded by a Policy Owner ---");
+        System.out.print("Enter Policy Owner Customer ID (c-XXXXXXX): ");
+        String ownerId = readLine(sc).trim();
+
+        List<InsuranceCard> cards = context.getCardRepository().getByPolicyOwnerId(ownerId);
+        if (cards.isEmpty()) {
+            System.out.println("No insurance cards funded by policy owner: " + ownerId);
+            return;
+        }
+        System.out.println("Found " + cards.size() + " card(s) funded by " + ownerId + ":");
+        for (InsuranceCard card : cards) {
+            System.out.println(card);
+        }
+    }
+
+    /**
+     * Admin flow for the CardManageable expiry filter, used for renewal reporting.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void viewCardsExpiringBeforeFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Insurance Cards Expiring Before a Date ---");
+        System.out.print("Enter deadline (yyyy-MM-ddTHH:mm): ");
+        LocalDateTime deadline;
+        try {
+            deadline = LocalDateTime.parse(readLine(sc).trim());
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid date-time format (expected yyyy-MM-ddTHH:mm).");
+            return;
+        }
+
+        List<InsuranceCard> cards = context.getCardRepository().filterExpiringBefore(deadline);
+        if (cards.isEmpty()) {
+            System.out.println("No insurance cards expire before " + deadline + ".");
+            return;
+        }
+        System.out.println("Found " + cards.size() + " card(s) expiring before " + deadline + ":");
+        for (InsuranceCard card : cards) {
+            System.out.println(card);
         }
     }
 
     private static void viewCustomerByIdFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- View Customer by ID ---");
         System.out.print("Enter Customer ID: ");
-        String id = sc.nextLine().trim();
+        String id = readLine(sc).trim();
 
         Customer c = context.getCustomerRepository().getById(id);
         if (c != null) {
@@ -276,7 +540,7 @@ public class Main {
     private static void adminSoftDeleteCustomerFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Toggle Customer Status (Soft-Delete) ---");
         System.out.print("Enter Customer ID to activate/deactivate: ");
-        String id = sc.nextLine().trim();
+        String id = readLine(sc).trim();
 
         Customer c = context.getCustomerRepository().getById(id);
         if (c != null) {
@@ -298,10 +562,14 @@ public class Main {
             System.out.println("1. Register New Card");
             System.out.println("2. View All Cards");
             System.out.println("3. View Card by Card Number");
-            System.out.println("4. Remove Card");
-            System.out.println("5. Back to Admin Menu");
+            System.out.println("4. Find Card by Card Holder ID");
+            System.out.println("5. View Cards Funded by a Policy Owner");
+            System.out.println("6. View Cards Expiring Before a Date");
+            System.out.println("7. Update Insurance Card Details");
+            System.out.println("8. Remove Card");
+            System.out.println("9. Back to Admin Menu");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -314,9 +582,21 @@ public class Main {
                     viewCardByNumberFlow(context, sc);
                     break;
                 case "4":
-                    removeCardFlow(context, sc);
+                    findCardByHolderFlow(context, sc);
                     break;
                 case "5":
+                    viewCardsByPolicyOwnerFlow(context, sc);
+                    break;
+                case "6":
+                    viewCardsExpiringBeforeFlow(context, sc);
+                    break;
+                case "7":
+                    adminUpdateCardFlow(context, sc);
+                    break;
+                case "8":
+                    removeCardFlow(context, sc);
+                    break;
+                case "9":
                     back = true;
                     break;
                 default:
@@ -328,18 +608,18 @@ public class Main {
     private static void addCardFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Register New Insurance Card ---");
         System.out.print("Card Number (10 digits): ");
-        String cardNumber = sc.nextLine().trim();
+        String cardNumber = readLine(sc).trim();
 
         System.out.print("Card Holder Customer ID: ");
-        String cardHolderId = sc.nextLine().trim();
+        String cardHolderId = readLine(sc).trim();
 
         System.out.print("Policy Owner Customer ID: ");
-        String policyOwnerId = sc.nextLine().trim();
+        String policyOwnerId = readLine(sc).trim();
 
         System.out.print("Expiration Date (yyyy-MM-ddTHH:mm): ");
         LocalDateTime expirationDate;
         try {
-            expirationDate = LocalDateTime.parse(sc.nextLine().trim());
+            expirationDate = LocalDateTime.parse(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid date format. Card not registered.");
             return;
@@ -383,7 +663,7 @@ public class Main {
     private static void viewCardByNumberFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- View Insurance Card by Card Number ---");
         System.out.print("Enter Card Number: ");
-        String cardNumber = sc.nextLine().trim();
+        String cardNumber = readLine(sc).trim();
 
         InsuranceCard card = context.getCardRepository().getById(cardNumber);
         if (card != null) {
@@ -396,14 +676,25 @@ public class Main {
     private static void removeCardFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Remove Insurance Card ---");
         System.out.print("Enter Card Number to remove: ");
-        String cardNumber = sc.nextLine().trim();
+        String cardNumber = readLine(sc).trim();
+
+        InsuranceCard card = context.getCardRepository().getById(cardNumber);
+        if (card == null) {
+            System.out.println("Card not found with number: " + cardNumber);
+            return;
+        }
+        if (context.getCardRepository().hasClaimsForCard(cardNumber)) {
+            System.out.println("Cannot remove card " + cardNumber
+                    + ": it still has associated claim(s). Remove or reassign those claims before deleting the card.");
+            return;
+        }
 
         boolean success = context.getCardRepository().delete(cardNumber);
         if (success) {
             context.autoSave();
             System.out.println("Insurance card removed successfully. (Data auto-saved to files)");
         } else {
-            System.out.println("Card not found with number: " + cardNumber);
+            System.out.println("Failed to remove card with number: " + cardNumber);
         }
     }
 
@@ -422,7 +713,7 @@ public class Main {
             System.out.println("9. Remove Claim");
             System.out.println("10. Back to Admin Menu");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -483,6 +774,8 @@ public class Main {
     // =========================================================================
 
     private static void officerMenuLoop(AppContext context, ClaimsOfficer officer, Scanner sc) {
+        // Record the start of this claims officer session in the audit trail
+        AuditLogger.log(officer.getUserId(), "OFFICER_SESSION_START", officer.getUserId());
         boolean inSession = true;
         while (inSession) {
             System.out.println("\n========== CLAIMS OFFICER MENU ==========");
@@ -498,7 +791,7 @@ public class Main {
             System.out.println("10. Save All Changes to Files");
             System.out.println("11. Logout to Login Screen");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -560,7 +853,7 @@ public class Main {
             }
             System.out.println("5. Logout to Login Screen");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -686,23 +979,35 @@ public class Main {
         while (!back) {
             System.out.println("\n----- Admin: User Account Management -----");
             System.out.println("1. View All User Accounts");
-            System.out.println("2. Toggle Account Status (Soft-Delete / Deactivate / Activate)");
-            System.out.println("3. Search User by Username");
-            System.out.println("4. Back to Admin Menu");
+            System.out.println("2. Add New Administrator Account");
+            System.out.println("3. Add New Claims Officer Account");
+            System.out.println("4. Update User Account Details");
+            System.out.println("5. Toggle Account Status (Soft-Delete / Deactivate / Activate)");
+            System.out.println("6. Search User by Username");
+            System.out.println("7. Back to Admin Menu");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
                     viewSystemSummary(context);
                     break;
                 case "2":
-                    adminToggleUserStatusFlow(context, sc);
+                    adminAddStaffFlow(context, sc, UserRole.ADMIN);
                     break;
                 case "3":
-                    adminSearchUserFlow(context, sc);
+                    adminAddStaffFlow(context, sc, UserRole.OFFICER);
                     break;
                 case "4":
+                    adminUpdateUserFlow(context, sc);
+                    break;
+                case "5":
+                    adminToggleUserStatusFlow(context, sc);
+                    break;
+                case "6":
+                    adminSearchUserFlow(context, sc);
+                    break;
+                case "7":
                     back = true;
                     break;
                 default:
@@ -714,7 +1019,7 @@ public class Main {
     private static void adminToggleUserStatusFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Toggle User Account Status (Soft-Delete) ---");
         System.out.print("Enter User ID to activate/deactivate: ");
-        String userId = sc.nextLine().trim();
+        String userId = readLine(sc).trim();
 
         User user = context.getUserRepository().getById(userId);
         if (user == null) {
@@ -733,7 +1038,7 @@ public class Main {
     private static void adminSearchUserFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Search User Account ---");
         System.out.print("Enter Username: ");
-        String uname = sc.nextLine().trim();
+        String uname = readLine(sc).trim();
 
         User u = context.getUserRepository().getByUsername(uname);
         if (u != null) {
@@ -746,6 +1051,231 @@ public class Main {
         } else {
             System.out.println("No user found with username: " + uname);
         }
+    }
+
+    /**
+     * Admin flow for provisioning a new staff account (ADMIN or OFFICER).
+     * Collects the account details, delegates validation and registration to
+     * AppContext, then persists immediately.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     * @param role    the staff role to create (ADMIN or OFFICER)
+     */
+    private static void adminAddStaffFlow(AppContext context, Scanner sc, UserRole role) {
+        String roleLabel = (role == UserRole.ADMIN) ? "Administrator" : "Claims Officer";
+        System.out.println("\n--- Register New " + roleLabel + " Account ---");
+        System.out.print("User ID (format u-XXXXXXX): ");
+        String userId = readLine(sc).trim();
+
+        System.out.print("Username: ");
+        String username = readLine(sc).trim();
+
+        System.out.print("Password: ");
+        String password = readLine(sc).trim();
+
+        System.out.print("Full Name: ");
+        String fullName = readLine(sc).trim();
+
+        System.out.print("Email: ");
+        String email = readLine(sc).trim();
+
+        boolean created = (role == UserRole.ADMIN)
+                ? context.registerAdmin(userId, username, password, fullName, email)
+                : context.registerOfficer(userId, username, password, fullName, email);
+
+        if (created) {
+            context.autoSave();
+            System.out.println(roleLabel + " account '" + username + "' created successfully. (Data auto-saved to files)");
+        } else {
+            System.out.println("Failed to create " + roleLabel + " account. Verify that the User ID matches "
+                    + "u-XXXXXXX, every field is non-blank, and neither the User ID nor the username is taken.");
+        }
+    }
+
+    /**
+     * Admin flow for editing an existing user account's profile and credentials.
+     * Blank input keeps the current value for that field.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void adminUpdateUserFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Update User Account Details ---");
+        System.out.print("User ID to update: ");
+        String userId = readLine(sc).trim();
+
+        User user = context.getUserRepository().getById(userId);
+        if (user == null) {
+            System.out.println("User not found with ID: " + userId);
+            return;
+        }
+
+        System.out.println("Editing account: " + user.getUsername() + " (Role: " + user.getRole() + ")");
+        System.out.println("Leave a field blank and press Enter to keep its current value.");
+
+        System.out.print("New Full Name [" + user.getFullName() + "]: ");
+        String fullName = readLine(sc).trim();
+        if (!fullName.isEmpty()) {
+            user.setFullName(fullName);
+        }
+
+        System.out.print("New Email [" + user.getEmail() + "]: ");
+        String email = readLine(sc).trim();
+        if (!email.isEmpty()) {
+            user.setEmail(email);
+        }
+
+        System.out.print("New Username [" + user.getUsername() + "]: ");
+        String username = readLine(sc).trim();
+        if (!username.isEmpty()) {
+            User clash = context.getUserRepository().getByUsername(username);
+            if (clash != null && !clash.getUserId().equals(user.getUserId())) {
+                System.out.println("Username '" + username + "' is already taken. Keeping the current username.");
+            } else {
+                user.setUsername(username);
+            }
+        }
+
+        System.out.print("New Password (blank to keep current): ");
+        String password = readLine(sc).trim();
+        if (!password.isEmpty()) {
+            user.setPassword(password);
+        }
+
+        context.getUserRepository().update(user);
+        context.autoSave();
+        System.out.println("User account " + user.getUserId() + " updated successfully. (Data auto-saved to files)");
+    }
+
+    /**
+     * Admin flow for editing an existing customer's profile and login credentials.
+     * Because the Customer instance is shared between CustomerRepository and
+     * UserRepository, a single repository update keeps both records consistent.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void adminUpdateCustomerFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Update Customer Details ---");
+        System.out.print("Customer ID to update: ");
+        String customerId = readLine(sc).trim();
+
+        Customer customer = context.getCustomerRepository().getById(customerId);
+        if (customer == null) {
+            System.out.println("Customer not found with ID: " + customerId);
+            return;
+        }
+
+        System.out.println("Editing customer: " + customer.getFullName()
+                + " (Type: " + customer.getCustomerType() + ")");
+        System.out.println("Leave a field blank and press Enter to keep its current value.");
+
+        System.out.print("New Full Name [" + customer.getFullName() + "]: ");
+        String fullName = readLine(sc).trim();
+        if (!fullName.isEmpty()) {
+            customer.setFullName(fullName);
+        }
+
+        System.out.print("New Email [" + customer.getEmail() + "]: ");
+        String email = readLine(sc).trim();
+        if (!email.isEmpty()) {
+            customer.setEmail(email);
+        }
+
+        System.out.print("New Username [" + customer.getUsername() + "]: ");
+        String username = readLine(sc).trim();
+        if (!username.isEmpty()) {
+            User clash = context.getUserRepository().getByUsername(username);
+            if (clash != null && !clash.getUserId().equals(customer.getUserId())) {
+                System.out.println("Username '" + username + "' is already taken. Keeping the current username.");
+            } else {
+                customer.setUsername(username);
+            }
+        }
+
+        System.out.print("New Password (blank to keep current): ");
+        String password = readLine(sc).trim();
+        if (!password.isEmpty()) {
+            customer.setPassword(password);
+        }
+
+        if (customer instanceof Dependent) {
+            System.out.print("New Parent PolicyHolder ID [" + customer.getParentPolicyHolderId() + "]: ");
+            String parentId = readLine(sc).trim();
+            if (!parentId.isEmpty()) {
+                if (!Validator.isValidCustomerId(parentId)) {
+                    System.out.println("Invalid customer ID format. Keeping the current parent.");
+                } else {
+                    Customer newParent = context.getCustomerRepository().getById(parentId);
+                    if (!(newParent instanceof PolicyHolder)) {
+                        System.out.println("Target customer is not a PolicyHolder. Keeping the current parent.");
+                    } else {
+                        Dependent dependent = (Dependent) customer;
+                        Customer oldParent = context.getCustomerRepository()
+                                .getById(dependent.getParentPolicyHolderId());
+                        if (oldParent instanceof PolicyHolder) {
+                            ((PolicyHolder) oldParent).removeDependent(dependent);
+                        }
+                        dependent.setParentPolicyHolderId(parentId);
+                        ((PolicyHolder) newParent).addDependent(dependent);
+                    }
+                }
+            }
+        }
+
+        context.getCustomerRepository().update(customer);
+        context.autoSave();
+        System.out.println("Customer " + customer.getCustomerId() + " updated successfully. (Data auto-saved to files)");
+    }
+
+    /**
+     * Admin flow for editing an insurance card's expiration date and policy owner.
+     * Blank input keeps the current value for that field.
+     *
+     * @param context the shared application context
+     * @param sc      the active console scanner
+     */
+    private static void adminUpdateCardFlow(AppContext context, Scanner sc) {
+        System.out.println("\n--- Update Insurance Card Details ---");
+        System.out.print("Card Number to update: ");
+        String cardNumber = readLine(sc).trim();
+
+        InsuranceCard card = context.getCardRepository().getById(cardNumber);
+        if (card == null) {
+            System.out.println("Card not found with number: " + cardNumber);
+            return;
+        }
+
+        System.out.println("Editing card: " + card.getCardNumber()
+                + " (Holder: " + card.getCardHolderId() + ")");
+        System.out.println("Leave a field blank and press Enter to keep its current value.");
+
+        System.out.print("New Expiration Date [" + card.getExpirationDate() + "]: ");
+        String expInput = readLine(sc).trim();
+        if (!expInput.isEmpty()) {
+            try {
+                card.setExpirationDate(LocalDateTime.parse(expInput));
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid date-time format (expected yyyy-MM-ddTHH:mm). Keeping the current value.");
+            }
+        }
+
+        System.out.print("New Policy Owner Customer ID [" + card.getPolicyOwnerId() + "]: ");
+        String ownerId = readLine(sc).trim();
+        if (!ownerId.isEmpty()) {
+            if (!Validator.isValidCustomerId(ownerId)) {
+                System.out.println("Invalid customer ID format. Keeping the current value.");
+            } else if (context.getCustomerRepository().getById(ownerId) == null) {
+                System.out.println("No customer found with ID " + ownerId + ". Keeping the current value.");
+            } else {
+                card.setPolicyOwnerId(ownerId);
+            }
+        }
+
+        context.getCardRepository().update(card);
+        context.autoSave();
+        System.out.println("Insurance card " + card.getCardNumber() + " updated successfully. (Data auto-saved to files)");
     }
 
     private static void viewAuditLogPlaceholder() {
@@ -776,7 +1306,7 @@ public class Main {
             System.out.println("3. Total Claim Payout Processed per Claims Officer");
             System.out.println("4. Back to Admin Menu");
             System.out.print("Choose an option: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             switch (choice) {
                 case "1":
@@ -836,7 +1366,7 @@ public class Main {
             System.out.println("4. Custom Date Range");
             System.out.println("5. Back to Reports Menu");
             System.out.print("Choose a window: ");
-            String choice = sc.nextLine().trim();
+            String choice = readLine(sc).trim();
 
             LocalDateTime start = null;
             LocalDateTime end = null;
@@ -861,14 +1391,14 @@ public class Main {
                 case "4":
                     System.out.print("Start Date-Time (yyyy-MM-ddTHH:mm): ");
                     try {
-                        start = LocalDateTime.parse(sc.nextLine().trim());
+                        start = LocalDateTime.parse(readLine(sc).trim());
                     } catch (Exception e) {
                         System.out.println("Invalid start date format.");
                         continue;
                     }
                     System.out.print("End Date-Time (yyyy-MM-ddTHH:mm): ");
                     try {
-                        end = LocalDateTime.parse(sc.nextLine().trim());
+                        end = LocalDateTime.parse(readLine(sc).trim());
                     } catch (Exception e) {
                         System.out.println("Invalid end date format.");
                         continue;
@@ -898,6 +1428,25 @@ public class Main {
                                 + " | Amount: " + String.format("%,.2f VND", c.getClaimAmount())
                                 + " | Claim Date: " + c.getClaimDate()
                                 + " | Processed By: " + (c.getProcessedByUserId() != null ? c.getProcessedByUserId() : "Unassigned"));
+                    }
+                } else {
+                    // An empty window is legitimate (no claims reached DONE in that
+                    // period), but a bare "0" reads like a broken report. Spell out
+                    // why it is empty and show the newest approved claim on file so
+                    // the operator can see the dataset is populated.
+                    System.out.println("No claims reached status DONE within " + windowLabel + ".");
+                    LocalDateTime latest = null;
+                    for (Claim c : context.getClaimRepository().getAll()) {
+                        if (c.getStatus() == ClaimStatus.DONE
+                                && (latest == null || c.getClaimDate().isAfter(latest))) {
+                            latest = c.getClaimDate();
+                        }
+                    }
+                    if (latest != null) {
+                        System.out.println("Most recent approved (DONE) claim on file is dated: " + latest);
+                        System.out.println("Try option 4 (Custom Date Range) to cover that period.");
+                    } else {
+                        System.out.println("No approved (DONE) claims exist in the system yet.");
                     }
                 }
             }
@@ -958,27 +1507,27 @@ public class Main {
     private static void addClaimFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Create New Claim ---");
         System.out.print("Claim ID (format f-XXXXXXXXXX): ");
-        String id = sc.nextLine().trim();
+        String id = readLine(sc).trim();
 
         System.out.print("Claim Date (yyyy-MM-ddTHH:mm): ");
         LocalDateTime claimDate;
         try {
-            claimDate = LocalDateTime.parse(sc.nextLine().trim());
+            claimDate = LocalDateTime.parse(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid claim date format. Claim not created.");
             return;
         }
 
         System.out.print("Insured Person Customer ID: ");
-        String insuredPersonId = sc.nextLine().trim();
+        String insuredPersonId = readLine(sc).trim();
 
         System.out.print("Card Number (10 digits): ");
-        String cardNumber = sc.nextLine().trim();
+        String cardNumber = readLine(sc).trim();
 
         System.out.print("Exam Date (yyyy-MM-ddTHH:mm): ");
         LocalDateTime examDate;
         try {
-            examDate = LocalDateTime.parse(sc.nextLine().trim());
+            examDate = LocalDateTime.parse(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid exam date format. Claim not created.");
             return;
@@ -987,7 +1536,7 @@ public class Main {
         System.out.print("Claim Amount: ");
         double claimAmount;
         try {
-            claimAmount = Double.parseDouble(sc.nextLine().trim());
+            claimAmount = Double.parseDouble(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid amount format. Claim not created.");
             return;
@@ -1013,10 +1562,10 @@ public class Main {
     private static void addDocumentFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Add Supporting Document to Claim ---");
         System.out.print("Claim ID: ");
-        String claimId = sc.nextLine().trim();
+        String claimId = readLine(sc).trim();
 
         System.out.print("Document Name (format ClaimId_CardNumber_Name.pdf): ");
-        String documentName = sc.nextLine().trim();
+        String documentName = readLine(sc).trim();
 
         boolean success = context.getClaimRepository().addDocument(claimId, documentName);
         if (success) {
@@ -1031,10 +1580,10 @@ public class Main {
     private static void updateClaimStatusFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Update Claim Status ---");
         System.out.print("Claim ID: ");
-        String claimId = sc.nextLine().trim();
+        String claimId = readLine(sc).trim();
 
         System.out.print("New Status (NEW / PROCESSING / DONE): ");
-        String newStatusStr = sc.nextLine().trim();
+        String newStatusStr = readLine(sc).trim();
 
         ClaimStatus newStatus = ClaimStatus.fromString(newStatusStr);
         if (newStatus == null) {
@@ -1072,7 +1621,7 @@ public class Main {
     private static void viewClaimByIdFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- View Claim by ID ---");
         System.out.print("Enter Claim ID: ");
-        String claimId = sc.nextLine().trim();
+        String claimId = readLine(sc).trim();
 
         Claim claim = context.getClaimRepository().getById(claimId);
         if (claim != null) {
@@ -1085,7 +1634,7 @@ public class Main {
     private static void filterClaimsByStatusFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Filter Claims by Status ---");
         System.out.print("Status to filter (NEW / PROCESSING / DONE): ");
-        String statusStr = sc.nextLine().trim();
+        String statusStr = readLine(sc).trim();
         ClaimStatus status = ClaimStatus.fromString(statusStr);
         if (status == null) {
             System.out.println("Invalid status: " + statusStr);
@@ -1104,7 +1653,7 @@ public class Main {
         System.out.print("Start Date-Time (yyyy-MM-ddTHH:mm): ");
         LocalDateTime start;
         try {
-            start = LocalDateTime.parse(sc.nextLine().trim());
+            start = LocalDateTime.parse(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid start date format.");
             return;
@@ -1113,7 +1662,7 @@ public class Main {
         System.out.print("End Date-Time (yyyy-MM-ddTHH:mm): ");
         LocalDateTime end;
         try {
-            end = LocalDateTime.parse(sc.nextLine().trim());
+            end = LocalDateTime.parse(readLine(sc).trim());
         } catch (Exception e) {
             System.out.println("Invalid end date format.");
             return;
@@ -1129,7 +1678,7 @@ public class Main {
     private static void filterClaimsByFamilyFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Filter Claims by PolicyHolder Family ---");
         System.out.print("Enter PolicyHolder Customer ID (c-XXXXXXX): ");
-        String policyHolderId = sc.nextLine().trim();
+        String policyHolderId = readLine(sc).trim();
 
         List<Claim> filtered = context.getClaimRepository().filterByPolicyHolderFamily(policyHolderId);
         System.out.println("Found " + filtered.size() + " claim(s) for family of PolicyHolder " + policyHolderId + ":");
@@ -1141,7 +1690,7 @@ public class Main {
     private static void removeClaimFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Remove Claim ---");
         System.out.print("Enter Claim ID to remove: ");
-        String claimId = sc.nextLine().trim();
+        String claimId = readLine(sc).trim();
 
         boolean success = context.getClaimRepository().delete(claimId);
         if (success) {
