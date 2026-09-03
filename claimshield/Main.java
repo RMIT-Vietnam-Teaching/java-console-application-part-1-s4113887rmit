@@ -286,33 +286,7 @@ public class Main {
         System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
     }
 }
-        System.out.println("\n--- Register New PolicyHolder ---");
-        System.out.print("User ID (format u-XXXXXXX): ");
-        String userId = readLine(sc).trim();
 
-        System.out.print("Username: ");
-        String username = readLine(sc).trim();
-
-        System.out.print("Password: ");
-        String password = readLine(sc).trim();
-
-        System.out.print("Full Name: ");
-        String fullName = readLine(sc).trim();
-
-        System.out.print("Email: ");
-        String email = readLine(sc).trim();
-
-        System.out.print("Customer ID (format c-XXXXXXX): ");
-        String customerId = readLine(sc).trim();
-
-        boolean success = context.registerPolicyHolder(userId, username, password, fullName, email, customerId);
-        if (success) {
-            context.autoSave();
-            System.out.println("PolicyHolder and user account registered successfully! (Data auto-saved to files)");
-        } else {
-            System.out.println("Failed to register PolicyHolder. Please check ID formats, non-empty fields, and duplicate IDs/usernames.");
-        }
-    }
 
     private static void adminAddDependentFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- Register New Dependent ---");
