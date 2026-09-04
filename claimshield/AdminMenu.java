@@ -291,31 +291,39 @@ final class AdminMenu {
 
         System.out.print("New Full Name [" + user.getFullName() + "]: ");
         String fullName = ConsoleSupport.readLine(sc).trim();
-        if (!fullName.isEmpty()) {
-            user.setFullName(fullName);
-        }
+        String targetFullName = fullName.isEmpty() ? user.getFullName() : fullName;
 
         System.out.print("New Email [" + user.getEmail() + "]: ");
         String email = ConsoleSupport.readLine(sc).trim();
-        if (!email.isEmpty()) {
-            user.setEmail(email);
-        }
+        String targetEmail = email.isEmpty() ? user.getEmail() : email;
 
         System.out.print("New Username [" + user.getUsername() + "]: ");
         String username = ConsoleSupport.readLine(sc).trim();
+        String targetUsername = username.isEmpty() ? user.getUsername() : username;
+
+        System.out.print("New Password (blank to keep current): ");
+        String password = ConsoleSupport.readLine(sc).trim();
+        String targetPassword = password.isEmpty() ? user.getPassword() : password;
+
+        String fieldError = ConsoleSupport.validateAccountFields(targetUsername, targetPassword, targetFullName, targetEmail);
+        if (fieldError != null) {
+            System.out.println("Error: " + fieldError + " Update aborted.");
+            return;
+        }
+
         if (!username.isEmpty()) {
             User clash = context.getUserRepository().getByUsername(username);
             if (clash != null && !clash.getUserId().equals(user.getUserId())) {
                 System.out.println("Username '" + username + "' is already taken. Keeping the current username.");
-            } else {
-                user.setUsername(username);
+                targetUsername = user.getUsername();
             }
         }
 
-        System.out.print("New Password (blank to keep current): ");
-        String password = ConsoleSupport.readLine(sc).trim();
+        user.setFullName(targetFullName);
+        user.setEmail(targetEmail);
+        user.setUsername(targetUsername);
         if (!password.isEmpty()) {
-            user.setPassword(password);
+            user.setPassword(targetPassword);
         }
 
         context.getUserRepository().update(user);

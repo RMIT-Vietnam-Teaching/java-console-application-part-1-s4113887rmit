@@ -298,31 +298,39 @@ final class CustomerConsole {
 
         System.out.print("New Full Name [" + customer.getFullName() + "]: ");
         String fullName = ConsoleSupport.readLine(sc).trim();
-        if (!fullName.isEmpty()) {
-            customer.setFullName(fullName);
-        }
+        String targetFullName = fullName.isEmpty() ? customer.getFullName() : fullName;
 
         System.out.print("New Email [" + customer.getEmail() + "]: ");
         String email = ConsoleSupport.readLine(sc).trim();
-        if (!email.isEmpty()) {
-            customer.setEmail(email);
-        }
+        String targetEmail = email.isEmpty() ? customer.getEmail() : email;
 
         System.out.print("New Username [" + customer.getUsername() + "]: ");
         String username = ConsoleSupport.readLine(sc).trim();
+        String targetUsername = username.isEmpty() ? customer.getUsername() : username;
+
+        System.out.print("New Password (blank to keep current): ");
+        String password = ConsoleSupport.readLine(sc).trim();
+        String targetPassword = password.isEmpty() ? customer.getPassword() : password;
+
+        String fieldError = ConsoleSupport.validateAccountFields(targetUsername, targetPassword, targetFullName, targetEmail);
+        if (fieldError != null) {
+            System.out.println("Error: " + fieldError + " Update aborted.");
+            return;
+        }
+
         if (!username.isEmpty()) {
             User clash = context.getUserRepository().getByUsername(username);
             if (clash != null && !clash.getUserId().equals(customer.getUserId())) {
                 System.out.println("Username '" + username + "' is already taken. Keeping the current username.");
-            } else {
-                customer.setUsername(username);
+                targetUsername = customer.getUsername();
             }
         }
 
-        System.out.print("New Password (blank to keep current): ");
-        String password = ConsoleSupport.readLine(sc).trim();
+        customer.setFullName(targetFullName);
+        customer.setEmail(targetEmail);
+        customer.setUsername(targetUsername);
         if (!password.isEmpty()) {
-            customer.setPassword(password);
+            customer.setPassword(targetPassword);
         }
 
         if (customer instanceof Dependent) {
