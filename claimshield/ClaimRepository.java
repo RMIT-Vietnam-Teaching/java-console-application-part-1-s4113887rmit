@@ -101,6 +101,11 @@ public class ClaimRepository implements ClaimManageable {
                 if (existing.getStatus() != claim.getStatus()) {
                     updateClaimStatus(claim.getId(), claim.getStatus());
                 }
+                if (claim.getDocuments().isEmpty() && !existing.getDocuments().isEmpty()) {
+                    for (String doc : existing.getDocuments()) {
+                        claim.addDocument(doc);
+                    }
+                }
                 if ((claim.getProcessedByUserId() == null || claim.getProcessedByUserId().trim().isEmpty())
                         && existing.getProcessedByUserId() != null) {
                     claim.setProcessedByUserId(existing.getProcessedByUserId());

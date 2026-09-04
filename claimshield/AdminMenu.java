@@ -442,12 +442,12 @@ final class AdminMenu {
                     break;
                 case "2":
                     start = java.time.LocalDate.now().minusDays(6).atStartOfDay();
-                    end = LocalDateTime.now();
+                    end = java.time.LocalDate.now().atTime(23, 59, 59);
                     windowLabel = "This Week (" + start.toLocalDate() + " to " + end.toLocalDate() + ")";
                     break;
                 case "3":
                     start = java.time.LocalDate.now().withDayOfMonth(1).atStartOfDay();
-                    end = LocalDateTime.now();
+                    end = java.time.LocalDate.now().atTime(23, 59, 59);
                     windowLabel = "This Month (" + start.toLocalDate() + " to " + end.toLocalDate() + ")";
                     break;
                 case "4":
@@ -516,38 +516,40 @@ final class AdminMenu {
     }
 
     private static void viewPayoutPerOfficerReport(AppContext context) {
-        System.out.println("\n===== TOTAL CLAIM PAYOUT PROCESSED PER CLAIMS OFFICER =====");
+        System.out.println("\n===== TOTAL CLAIM PAYOUT PROCESSED PER CLAIMS OFFICER & STAFF =====");
         List<User> allUsers = context.getUserRepository().getAll();
-        double grandTotalOfficerPayout = 0.0;
-        int totalOfficerClaimsCount = 0;
 
         for (User u : allUsers) {
-            if (u.getRole() == UserRole.OFFICER) {
-                double officerPayout = context.getClaimRepository().getApprovedPayoutByOfficer(u.getUserId());
-                List<Claim> officerClaims = context.getClaimRepository().getApprovedClaimsByOfficer(u.getUserId());
-
-                System.out.println("\nOfficer : " + u.getFullName() + " (ID: " + u.getUserId() + ")");
-                System.out.println("Approved Claims Processed: " + officerClaims.size());
-                System.out.println("Total Approved Payout    : " + String.format("%,.2f VND", officerPayout));
-                if (!officerClaims.isEmpty()) {
+            if (u.getRole() == UserRole.OFFICER || u.getRole() == UserRole.ADMIN) {
+                List<Claim> staffClaims = context.getClaimRepository().getApprovedClaimsByOfficer(u.getUserId());
+                if (!staffClaims.isEmpty()) {
+                    double staffPayout = context.getClaimRepository().getApprovedPayoutByOfficer(u.getUserId());
+                    String roleLabel = (u.getRole() == UserRole.ADMIN) ? "Admin" : "Officer";
+                    System.out.println("\n" + roleLabel + " : " + u.getFullName() + " (ID: " + u.getUserId() + ")");
+                    System.out.println("Approved Claims Processed: " + staffClaims.size());
+                    System.out.println("Total Approved Payout    : " + String.format("%,.2f VND", staffPayout));
                     System.out.println("Processed Claim IDs      : ");
-                    for (Claim oc : officerClaims) {
+                    for (Claim oc : staffClaims) {
                         System.out.println("  -> Claim " + oc.getId() + " | Amount: " + String.format("%,.2f VND", oc.getClaimAmount())
                                 + " | Insured: " + oc.getInsuredPersonId() + " | Date: " + oc.getClaimDate());
                     }
                 }
-                grandTotalOfficerPayout += officerPayout;
-                totalOfficerClaimsCount += officerClaims.size();
             }
         }
 
-        // Check for unassigned legacy claims (claims where processedByUserId is null)
+        double grandTotalApprovedPayout = 0.0;
+        int grandTotalApprovedCount = 0;
         double unassignedPayout = 0.0;
         int unassignedCount = 0;
+
         for (Claim c : context.getClaimRepository().getAll()) {
-            if (c.getStatus() == ClaimStatus.DONE && (c.getProcessedByUserId() == null || c.getProcessedByUserId().trim().isEmpty())) {
-                unassignedPayout += c.getClaimAmount();
-                unassignedCount++;
+            if (c.getStatus() == ClaimStatus.DONE) {
+                grandTotalApprovedPayout += c.getClaimAmount();
+                grandTotalApprovedCount++;
+                if (c.getProcessedByUserId() == null || c.getProcessedByUserId().trim().isEmpty()) {
+                    unassignedPayout += c.getClaimAmount();
+                    unassignedCount++;
+                }
             }
         }
 
@@ -557,8 +559,8 @@ final class AdminMenu {
         }
 
         System.out.println("\n--------------------------------------------------------------------------------");
-        System.out.println("Grand Total Approved Payout (All Claims): "
-                + String.format("%,.2f VND", (grandTotalOfficerPayout + unassignedPayout)));
+        System.out.println("Grand Total Approved Payout (All " + grandTotalApprovedCount + " Claims): "
+                + String.format("%,.2f VND", grandTotalApprovedPayout));
         System.out.println("--------------------------------------------------------------------------------");
     }
 
