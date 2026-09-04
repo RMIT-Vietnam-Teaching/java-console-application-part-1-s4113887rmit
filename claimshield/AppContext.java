@@ -182,6 +182,9 @@ public class AppContext {
      * Calculates cumulative total approved claim amounts for all customers based on DONE claims.
      */
     public void calculateCustomerClaimTotals() {
+        for (Customer c : customerRepository.getAll()) {
+            c.setTotalClaimAmount(0.0);
+        }
         for (Claim claim : claimRepository.getAll()) {
             if (claim.getStatus() == ClaimStatus.DONE) {
                 Customer customer = customerRepository.getById(claim.getInsuredPersonId());

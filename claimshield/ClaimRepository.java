@@ -101,6 +101,10 @@ public class ClaimRepository implements ClaimManageable {
                 if (existing.getStatus() != claim.getStatus()) {
                     updateClaimStatus(claim.getId(), claim.getStatus());
                 }
+                if ((claim.getProcessedByUserId() == null || claim.getProcessedByUserId().trim().isEmpty())
+                        && existing.getProcessedByUserId() != null) {
+                    claim.setProcessedByUserId(existing.getProcessedByUserId());
+                }
                 claims.set(i, claim);
                 AuditLogger.log(AppContext.getCurrentActorId(), "UPDATE_CLAIM", claim.getId());
                 return true;

@@ -241,7 +241,22 @@ final class CardConsole {
         String expInput = ConsoleSupport.readLine(sc).trim();
         if (!expInput.isEmpty()) {
             try {
-                card.setExpirationDate(LocalDateTime.parse(expInput));
+                LocalDateTime newExp = LocalDateTime.parse(expInput);
+                List<Claim> cardClaims = context.getClaimRepository().filterByCardNumber(card.getCardNumber());
+                boolean valid = true;
+                for (Claim cl : cardClaims) {
+                    if (!cl.getExamDate().isBefore(newExp)) {
+                        System.out.println("Invalid expiration date: Claim " + cl.getId()
+                                + " has exam date " + cl.getExamDate()
+                                + " which is not strictly before proposed expiration date " + newExp
+                                + ". Keeping current expiration date.");
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    card.setExpirationDate(newExp);
+                }
             } catch (DateTimeParseException e) {
                 System.out.println("Invalid date-time format (expected yyyy-MM-ddTHH:mm). Keeping the current value.");
             }

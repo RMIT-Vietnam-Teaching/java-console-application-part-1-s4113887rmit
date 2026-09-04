@@ -71,6 +71,14 @@ public class CustomerRepository implements CustomerManageable {
         }
         Customer target = getById(id);
         if (target != null) {
+            if (target instanceof PolicyHolder && !((PolicyHolder) target).getDependents().isEmpty()) {
+                System.out.println("Cannot delete customer " + id + ": Customer is a PolicyHolder with active dependents.");
+                return false;
+            }
+            if (target.getInsuranceCard() != null) {
+                System.out.println("Cannot delete customer " + id + ": Customer has an active insurance card linked.");
+                return false;
+            }
             customers.remove(target);
             AuditLogger.log(AppContext.getCurrentActorId(), "DELETE_CUSTOMER", id);
             return true;
