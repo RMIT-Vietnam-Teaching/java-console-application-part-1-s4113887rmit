@@ -55,7 +55,7 @@ The welcome banner printed on startup:
 ```
 =======================================
 COSC3110/3111 HEALTH INSURANCE SYSTEM
-                        Student ID: s4113887
+                        Student ID: S4113887
                     Student Name: Nguyen Ngoc Quang Dang
 =======================================
 ```

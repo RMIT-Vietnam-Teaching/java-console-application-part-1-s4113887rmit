@@ -42,7 +42,7 @@ public class Main {
     private static void printBanner() {
         System.out.println("=======================================");
         System.out.println("COSC3110/3111 HEALTH INSURANCE SYSTEM");
-        System.out.println("                        Student ID: s4113887");
+        System.out.println("                        Student ID: S4113887");
         System.out.println("                    Student Name: Nguyen Ngoc Quang Dang");
         System.out.println("=======================================");
     }
