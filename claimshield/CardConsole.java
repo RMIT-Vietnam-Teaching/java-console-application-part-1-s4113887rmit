@@ -95,6 +95,15 @@ final class CardConsole {
             System.out.println("Failed to register card: Policy owner must be a PolicyHolder.");
             return;
         }
+        // A Customer holds a single insurance card. Issuing a second one would
+        // overwrite that reference and silently orphan the previous card, which
+        // keeps its claims and can then never be removed.
+        if (holder.getInsuranceCard() != null) {
+            System.out.println("Failed to register card: Card holder " + cardHolderId
+                    + " already holds card " + holder.getInsuranceCard().getCardNumber()
+                    + ". Remove that card before issuing a new one.");
+            return;
+        }
 
         InsuranceCard card = new InsuranceCard(cardNumber, cardHolderId, policyOwnerId, expirationDate);
         boolean success = context.getCardRepository().add(card);

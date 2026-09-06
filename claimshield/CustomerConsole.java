@@ -392,12 +392,14 @@ final class CustomerConsole {
         if (c != null) {
             UserStatus newStatus = (c.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
             if (newStatus == UserStatus.INACTIVE) {
-                if (c instanceof PolicyHolder && !((PolicyHolder) c).getDependents().isEmpty()) {
-                    System.out.println("Cannot deactivate PolicyHolder " + id + ": Customer covers active dependents. Deactivate dependents first.");
-                    return;
-                }
-                if (c.getInsuranceCard() != null) {
-                    System.out.println("Cannot deactivate customer " + id + ": Customer has an active insurance card linked. Remove card first.");
+                // A policy owner may only be retired once nobody ACTIVE still depends on
+                // the cover. Deactivated dependents do not block the change, so the
+                // operator can clear the family first and then retire the owner.
+                // A linked insurance card is NOT a blocker: soft-delete preserves the
+                // card record and every historic claim attached to it.
+                if (c instanceof PolicyHolder && ((PolicyHolder) c).hasActiveDependents()) {
+                    System.out.println("Cannot deactivate PolicyHolder " + id
+                            + ": still covers active dependents. Deactivate those dependents first.");
                     return;
                 }
             }

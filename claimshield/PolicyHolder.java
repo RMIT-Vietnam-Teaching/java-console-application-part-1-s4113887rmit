@@ -73,6 +73,25 @@ public class PolicyHolder extends Customer {
     }
 
     /**
+     * Reports whether this policyholder still covers at least one dependent whose
+     * account is currently ACTIVE.
+     * <p>
+     * Used as a referential guard before a customer account is deactivated, so a
+     * policy owner cannot be retired while somebody still depends on the cover.
+     * Dependents that are themselves already deactivated do not block the change.
+     *
+     * @return true if at least one linked dependent is ACTIVE, false otherwise
+     */
+    public boolean hasActiveDependents() {
+        for (Dependent dependent : dependents) {
+            if (dependent != null && dependent.getStatus() == UserStatus.ACTIVE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Adds a dependent to this policyholder's family plan.
      *
      * @param dependent the Dependent to add

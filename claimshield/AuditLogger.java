@@ -21,7 +21,8 @@ import java.util.List;
  * timestamps and actor IDs.
  */
 public class AuditLogger {
-    private static final String LOG_FILE_PATH = "data/logs.txt";
+    /** Single source of truth for the log location, shared with every other file path. */
+    private static final String LOG_FILE_PATH = ConsoleSupport.LOGS_FILE;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     /**

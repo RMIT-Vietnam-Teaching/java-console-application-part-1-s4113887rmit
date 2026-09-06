@@ -144,10 +144,4 @@ final class CustomerPortal {
             System.out.println("Covering PolicyHolder ID: " + parentId + " (Record not found)");
         }
     }
-
-    // =========================================================================
-    // ADMIN USER MANAGEMENT & SOFT-DELETE OPERATIONS
-    // =========================================================================
-
-
 }

@@ -46,7 +46,7 @@ final class AdminMenu {
                     adminUserSubMenu(context, sc);
                     break;
                 case "5":
-                    viewAuditLogPlaceholder();
+                    viewAuditLog();
                     break;
                 case "6":
                     adminReportsSubMenu(context, sc);
@@ -136,10 +136,6 @@ final class AdminMenu {
         }
     }
 
-    // =========================================================================
-    // CLAIMS OFFICER MENU & OPERATIONS
-    // =========================================================================
-
     private static void adminUserSubMenu(AppContext context, Scanner sc) {
         boolean back = false;
         while (!back) {
@@ -194,11 +190,47 @@ final class AdminMenu {
         }
 
         UserStatus newStatus = (user.getStatus() == UserStatus.ACTIVE) ? UserStatus.INACTIVE : UserStatus.ACTIVE;
+
+        if (newStatus == UserStatus.INACTIVE) {
+            // An operator must never be able to lock themselves out of the system.
+            User currentActor = AppContext.getCurrentSessionUser();
+            if (currentActor != null && userId.equals(currentActor.getUserId())) {
+                System.out.println("Cannot deactivate account " + userId
+                        + ": this is the account you are currently signed in with.");
+                return;
+            }
+            // The system must always keep at least one ACTIVE administrator able to log in.
+            if (user.getRole() == UserRole.ADMIN && countActiveAdmins(context) <= 1) {
+                System.out.println("Cannot deactivate administrator " + userId
+                        + ": at least one ACTIVE administrator account must remain.");
+                return;
+            }
+            // A Customer shares this very account object, so the family-cover rule that
+            // applies in the customer directory has to apply here too; otherwise the
+            // customer guard could be bypassed by editing the account instead.
+            if (user instanceof PolicyHolder && ((PolicyHolder) user).hasActiveDependents()) {
+                System.out.println("Cannot deactivate PolicyHolder " + ((Customer) user).getId()
+                        + ": still covers active dependents. Deactivate those dependents first.");
+                return;
+            }
+        }
+
         user.setStatus(newStatus);
         AuditLogger.log(AppContext.getCurrentActorId(), "TOGGLE_USER_STATUS_" + newStatus, userId);
         context.autoSave();
         System.out.println("User account " + user.getUserId() + " (" + user.getUsername() + ") status updated to: " + newStatus
                 + " (Data auto-saved to files)");
+    }
+
+    /** Counts administrator accounts that are currently able to log in. */
+    private static int countActiveAdmins(AppContext context) {
+        int count = 0;
+        for (User u : context.getUserRepository().getAll()) {
+            if (u.getRole() == UserRole.ADMIN && u.getStatus() == UserStatus.ACTIVE) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static void adminSearchUserFlow(AppContext context, Scanner sc) {
@@ -340,7 +372,7 @@ final class AdminMenu {
      * @param sc      the active console scanner
      */
 
-    private static void viewAuditLogPlaceholder() {
+    private static void viewAuditLog() {
         System.out.println("\n===== SYSTEM AUDIT LOG (MOST RECENT FIRST) =====");
         List<AuditLogger.AuditEntry> logs = AuditLogger.readLogsMostRecentFirst();
         if (logs.isEmpty()) {
@@ -563,12 +595,4 @@ final class AdminMenu {
                 + String.format("%,.2f VND", grandTotalApprovedPayout));
         System.out.println("--------------------------------------------------------------------------------");
     }
-
-    // =========================================================================
-    // CLAIM OPERATION FLOWS (WITH COMPLETE EXCEPTION HANDLING)
-    // =========================================================================
-
-
-
-
 }
