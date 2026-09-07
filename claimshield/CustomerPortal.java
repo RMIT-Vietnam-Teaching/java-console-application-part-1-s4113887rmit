@@ -15,6 +15,10 @@ final class CustomerPortal {
     }
 
     static void show(AppContext context, Customer customer, Scanner sc) {
+        // Mirrors AdminMenu / OfficerMenu so every role has a session-start
+        // entry in the audit trail, not just staff roles.
+        AuditLogger.log(customer.getUserId(), "CUSTOMER_SESSION_START", customer.getUserId());
+
         boolean inSession = true;
         while (inSession) {
             System.out.println("\n========== CUSTOMER PORTAL ==========");
@@ -69,7 +73,8 @@ final class CustomerPortal {
         System.out.println("Customer Type    : " + customer.getCustomerType());
         System.out.println("Membership Tier  : " + customer.getMembershipTier());
         System.out.println("Co-pay Discount  : " + String.format("%.0f%%", customer.getMembershipTier().getDiscountRate() * 100));
-        System.out.println("Approved Claims  : " + customer.getTotalClaimAmount());
+        System.out.println("Effective Co-Pay : " + String.format("%.1f%%", customer.getMembershipTier().getEffectiveCopayRate() * 100));
+        System.out.println("Approved Claims  : " + String.format("%,.2f VND", customer.getTotalClaimAmount()));
     }
 
     private static void viewCustomerCard(Customer customer) {
@@ -93,13 +98,15 @@ final class CustomerPortal {
         int count = 0;
         for (Claim c : all) {
             if (c.getInsuredPersonId().equals(customer.getId())) {
-                double stdCopay = c.getClaimAmount() * 0.20;
+                double stdCopay = c.getClaimAmount() * MembershipTier.BASE_COPAY_RATE;
                 double discountedCopay = customer.calculatePatientCopay(c.getClaimAmount());
+                double insurancePayout = customer.calculateInsurancePayout(c.getClaimAmount());
                 System.out.println("Claim ID: " + c.getId()
                         + " | Date: " + c.getClaimDate()
                         + " | Claim Amount: " + String.format("%,.2f VND", c.getClaimAmount())
                         + " | Status: [" + c.getStatus() + "]"
-                        + " | Est. Patient Co-pay: " + String.format("%,.2f VND", discountedCopay)
+                        + " | Insurance Payout: " + String.format("%,.2f VND", insurancePayout)
+                        + " | Patient Co-pay: " + String.format("%,.2f VND", discountedCopay)
                         + " (Saved: " + String.format("%,.2f VND", (stdCopay - discountedCopay)) + ")"
                         + " | Exam Date: " + c.getExamDate()
                         + " | Documents: " + c.getDocuments());

@@ -152,11 +152,36 @@ public class ClaimRepository implements ClaimManageable {
             claim.setProcessedByUserId(currentActor);
         }
 
-        // When a claim transitions to DONE (approved), add its amount to the customer's totalClaimAmount
-        if (newStatus == ClaimStatus.DONE && customerRepository != null) {
-            Customer customer = customerRepository.getById(claim.getInsuredPersonId());
+        // When a claim transitions to DONE (approved), add its amount to the customer's
+        // totalClaimAmount, then surface the derived co-pay / payout figures.
+        if (newStatus == ClaimStatus.DONE) {
+            Customer customer = (customerRepository != null)
+                    ? customerRepository.getById(claim.getInsuredPersonId())
+                    : null;
             if (customer != null) {
                 customer.setTotalClaimAmount(customer.getTotalClaimAmount() + claim.getClaimAmount());
+            }
+
+            // The brief requires the co-pay and payout to be calculated during claim
+            // processing (DONE), not only inside the reports, so the operator sees the
+            // financial outcome at the exact moment the claim is approved.
+            double billed = claim.getClaimAmount();
+            MembershipTier tier = (customer != null) ? customer.getMembershipTier() : MembershipTier.STANDARD;
+            double copay = (customer != null)
+                    ? customer.calculatePatientCopay(billed)
+                    : billed * tier.getEffectiveCopayRate();
+            double payout = billed - copay;
+
+            System.out.println("\n  Approved financial breakdown for claim " + claimId + ":");
+            System.out.println("    Insured person    : " + claim.getInsuredPersonId()
+                    + " (Tier: " + tier.name() + ", effective co-pay "
+                    + String.format("%.1f%%", tier.getEffectiveCopayRate() * 100) + ")");
+            System.out.println("    Gross billed      : " + String.format("%,.2f VND", billed));
+            System.out.println("    Customer co-pay   : " + String.format("%,.2f VND", copay));
+            System.out.println("    Insurance payout  : " + String.format("%,.2f VND", payout));
+            if (customer != null) {
+                System.out.println("    New total approved: "
+                        + String.format("%,.2f VND", customer.getTotalClaimAmount()));
             }
         }
 
@@ -314,11 +339,12 @@ public class ClaimRepository implements ClaimManageable {
     }
 
     /**
-     * Computes the total approved (DONE) claim payout within a specific date range.
+     * Computes the total approved (DONE) insurance payout amount within a specific date range.
+     * Insurance payout = claimAmount - customer co-pay.
      *
      * @param start start of the timeframe (inclusive)
      * @param end   end of the timeframe (inclusive)
-     * @return sum of approved claim amounts in the range
+     * @return sum of insurance payout amounts in the range
      */
     public double getApprovedPayoutByDateRange(LocalDateTime start, LocalDateTime end) {
         double total = 0.0;
@@ -329,7 +355,41 @@ public class ClaimRepository implements ClaimManageable {
             if (c.getStatus() == ClaimStatus.DONE) {
                 LocalDateTime d = c.getClaimDate();
                 if ((d.isEqual(start) || d.isAfter(start)) && (d.isEqual(end) || d.isBefore(end))) {
-                    total += c.getClaimAmount();
+                    Customer cust = (customerRepository != null) ? customerRepository.getById(c.getInsuredPersonId()) : null;
+                    if (cust != null) {
+                        total += cust.calculateInsurancePayout(c.getClaimAmount());
+                    } else {
+                        // Fallback: standard unranked rate (70% insurance payout)
+                        total += c.getClaimAmount() * (1.0 - MembershipTier.STANDARD.getEffectiveCopayRate());
+                    }
+                }
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Computes the total customer co-pay amount for approved (DONE) claims within a specific date range.
+     *
+     * @param start start of the timeframe (inclusive)
+     * @param end   end of the timeframe (inclusive)
+     * @return sum of customer co-pay amounts in the range
+     */
+    public double getApprovedCopayByDateRange(LocalDateTime start, LocalDateTime end) {
+        double total = 0.0;
+        if (start == null || end == null) {
+            return total;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE) {
+                LocalDateTime d = c.getClaimDate();
+                if ((d.isEqual(start) || d.isAfter(start)) && (d.isEqual(end) || d.isBefore(end))) {
+                    Customer cust = (customerRepository != null) ? customerRepository.getById(c.getInsuredPersonId()) : null;
+                    if (cust != null) {
+                        total += cust.calculatePatientCopay(c.getClaimAmount());
+                    } else {
+                        total += c.getClaimAmount() * MembershipTier.STANDARD.getEffectiveCopayRate();
+                    }
                 }
             }
         }
@@ -360,10 +420,11 @@ public class ClaimRepository implements ClaimManageable {
     }
 
     /**
-     * Computes the total approved (DONE) claim payout processed by a specific officer.
+     * Computes the total approved (DONE) insurance payout processed by a specific officer.
+     * Insurance payout = claimAmount - customer co-pay.
      *
      * @param officerUserId user ID of the processing officer (e.g. u-0000002)
-     * @return sum of approved claim amounts processed by that officer
+     * @return sum of approved insurance payouts processed by that officer
      */
     public double getApprovedPayoutByOfficer(String officerUserId) {
         double total = 0.0;
@@ -372,7 +433,36 @@ public class ClaimRepository implements ClaimManageable {
         }
         for (Claim c : claims) {
             if (c.getStatus() == ClaimStatus.DONE && officerUserId.equals(c.getProcessedByUserId())) {
-                total += c.getClaimAmount();
+                Customer cust = (customerRepository != null) ? customerRepository.getById(c.getInsuredPersonId()) : null;
+                if (cust != null) {
+                    total += cust.calculateInsurancePayout(c.getClaimAmount());
+                } else {
+                    total += c.getClaimAmount() * (1.0 - MembershipTier.STANDARD.getEffectiveCopayRate());
+                }
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Computes the total customer co-pay for approved (DONE) claims processed by a specific officer.
+     *
+     * @param officerUserId user ID of the processing officer (e.g. u-0000002)
+     * @return sum of customer co-pay amounts processed by that officer
+     */
+    public double getApprovedCopayByOfficer(String officerUserId) {
+        double total = 0.0;
+        if (officerUserId == null) {
+            return total;
+        }
+        for (Claim c : claims) {
+            if (c.getStatus() == ClaimStatus.DONE && officerUserId.equals(c.getProcessedByUserId())) {
+                Customer cust = (customerRepository != null) ? customerRepository.getById(c.getInsuredPersonId()) : null;
+                if (cust != null) {
+                    total += cust.calculatePatientCopay(c.getClaimAmount());
+                } else {
+                    total += c.getClaimAmount() * MembershipTier.STANDARD.getEffectiveCopayRate();
+                }
             }
         }
         return total;

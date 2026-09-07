@@ -396,15 +396,16 @@ final class AdminMenu {
         while (!back) {
             System.out.println("\n========== FINANCIAL ANALYTICS & REPORTS ==========");
             System.out.println("1. Overall Claims Volume & Breakdown by Status");
-            System.out.println("2. Total Approved (DONE) Payout by Timeframe (Day/Week/Month/Custom)");
-            System.out.println("3. Total Claim Payout Processed per Claims Officer");
-            System.out.println("4. Back to Admin Menu");
+            System.out.println("2. Total Approved Payout & Customer Co-Pay by Timeframe (Day/Week/Month/Custom)");
+            System.out.println("3. Total Claim Payouts & Co-Pays Processed per Claims Officer");
+            System.out.println("4. Tier-Based Financial Summary (Standard, Silver, Gold, Platinum)");
+            System.out.println("5. Back to Admin Menu");
             System.out.print("Choose an option: ");
             String choice = ConsoleSupport.readLine(sc).trim();
 
             switch (choice) {
                 case "1":
-                    viewOverallClaimsVolumeReport(context);
+                    new FinancialReportService(context).printOverallClaimsVolumeReport();
                     break;
                 case "2":
                     viewPayoutByTimeframeSubMenu(context, sc);
@@ -413,41 +414,15 @@ final class AdminMenu {
                     viewPayoutPerOfficerReport(context);
                     break;
                 case "4":
+                    viewTierBasedFinancialSummaryReport(context);
+                    break;
+                case "5":
                     back = true;
                     break;
                 default:
                     System.out.println("Invalid option. Please try again.");
             }
         }
-    }
-
-    private static void viewOverallClaimsVolumeReport(AppContext context) {
-        System.out.println("\n===== OVERALL CLAIMS VOLUME & BREAKDOWN =====");
-        double totalApproved = 0.0;
-        double totalProcessing = 0.0;
-        double totalNew = 0.0;
-        int countApproved = 0;
-        int countProcessing = 0;
-        int countNew = 0;
-
-        for (Claim c : context.getClaimRepository().getAll()) {
-            if (c.getStatus() == ClaimStatus.DONE) {
-                totalApproved += c.getClaimAmount();
-                countApproved++;
-            } else if (c.getStatus() == ClaimStatus.PROCESSING) {
-                totalProcessing += c.getClaimAmount();
-                countProcessing++;
-            } else if (c.getStatus() == ClaimStatus.NEW) {
-                totalNew += c.getClaimAmount();
-                countNew++;
-            }
-        }
-
-        System.out.println("Total Approved Claims (DONE)       : " + countApproved + " claim(s) | " + String.format("%,.2f VND", totalApproved));
-        System.out.println("Total Processing Claims            : " + countProcessing + " claim(s) | " + String.format("%,.2f VND", totalProcessing));
-        System.out.println("Total Pending Claims (NEW)         : " + countNew + " claim(s) | " + String.format("%,.2f VND", totalNew));
-        System.out.println("Cumulative Claim Volume            : " + (countApproved + countProcessing + countNew) + " claim(s) | "
-                + String.format("%,.2f VND", (totalApproved + totalProcessing + totalNew)));
     }
 
     private static void viewPayoutByTimeframeSubMenu(AppContext context, Scanner sc) {
@@ -508,18 +483,29 @@ final class AdminMenu {
             }
 
             if (start != null && end != null) {
-                double payout = context.getClaimRepository().getApprovedPayoutByDateRange(start, end);
+                double insurancePayout = context.getClaimRepository().getApprovedPayoutByDateRange(start, end);
+                double customerCopay = context.getClaimRepository().getApprovedCopayByDateRange(start, end);
                 List<Claim> approvedClaims = context.getClaimRepository().getApprovedClaimsByDateRange(start, end);
 
-                System.out.println("\n===== APPROVED PAYOUT REPORT: " + windowLabel + " =====");
-                System.out.println("Total Approved Claims Found : " + approvedClaims.size());
-                System.out.println("Total Approved Payout Amount: " + String.format("%,.2f VND", payout));
+                System.out.println("\n===== APPROVED TIMEFRAME FINANCIAL REPORT: " + windowLabel + " =====");
+                System.out.println("Total Approved Claims Found   : " + approvedClaims.size());
+                System.out.println("Total Gross Billed Amount     : " + String.format("%,.2f VND", (insurancePayout + customerCopay)));
+                System.out.println("Total Insurance Payout Amount : " + String.format("%,.2f VND", insurancePayout));
+                System.out.println("Total Customer Co-Pay Amount  : " + String.format("%,.2f VND", customerCopay));
                 if (!approvedClaims.isEmpty()) {
                     System.out.println("--- Claim Details ---");
                     for (Claim c : approvedClaims) {
+                        Customer cust = context.getCustomerRepository().getById(c.getInsuredPersonId());
+                        double cPayout = (cust != null) ? cust.calculateInsurancePayout(c.getClaimAmount())
+                                : c.getClaimAmount() * (1.0 - MembershipTier.STANDARD.getEffectiveCopayRate());
+                        double cCopay = (cust != null) ? cust.calculatePatientCopay(c.getClaimAmount())
+                                : c.getClaimAmount() * MembershipTier.STANDARD.getEffectiveCopayRate();
+                        String tierLabel = (cust != null) ? cust.getMembershipTier().name() : "STANDARD";
                         System.out.println("Claim ID: " + c.getId()
-                                + " | Insured: " + c.getInsuredPersonId()
-                                + " | Amount: " + String.format("%,.2f VND", c.getClaimAmount())
+                                + " | Insured: " + c.getInsuredPersonId() + " (" + tierLabel + ")"
+                                + " | Billed: " + String.format("%,.2f VND", c.getClaimAmount())
+                                + " | Insurance Payout: " + String.format("%,.2f VND", cPayout)
+                                + " | Customer Co-pay: " + String.format("%,.2f VND", cCopay)
                                 + " | Claim Date: " + c.getClaimDate()
                                 + " | Processed By: " + (c.getProcessedByUserId() != null ? c.getProcessedByUserId() : "Unassigned"));
                     }
@@ -548,51 +534,10 @@ final class AdminMenu {
     }
 
     private static void viewPayoutPerOfficerReport(AppContext context) {
-        System.out.println("\n===== TOTAL CLAIM PAYOUT PROCESSED PER CLAIMS OFFICER & STAFF =====");
-        List<User> allUsers = context.getUserRepository().getAll();
+        new FinancialReportService(context).printPayoutPerOfficerReport();
+    }
 
-        for (User u : allUsers) {
-            if (u.getRole() == UserRole.OFFICER || u.getRole() == UserRole.ADMIN) {
-                List<Claim> staffClaims = context.getClaimRepository().getApprovedClaimsByOfficer(u.getUserId());
-                if (!staffClaims.isEmpty()) {
-                    double staffPayout = context.getClaimRepository().getApprovedPayoutByOfficer(u.getUserId());
-                    String roleLabel = (u.getRole() == UserRole.ADMIN) ? "Admin" : "Officer";
-                    System.out.println("\n" + roleLabel + " : " + u.getFullName() + " (ID: " + u.getUserId() + ")");
-                    System.out.println("Approved Claims Processed: " + staffClaims.size());
-                    System.out.println("Total Approved Payout    : " + String.format("%,.2f VND", staffPayout));
-                    System.out.println("Processed Claim IDs      : ");
-                    for (Claim oc : staffClaims) {
-                        System.out.println("  -> Claim " + oc.getId() + " | Amount: " + String.format("%,.2f VND", oc.getClaimAmount())
-                                + " | Insured: " + oc.getInsuredPersonId() + " | Date: " + oc.getClaimDate());
-                    }
-                }
-            }
-        }
-
-        double grandTotalApprovedPayout = 0.0;
-        int grandTotalApprovedCount = 0;
-        double unassignedPayout = 0.0;
-        int unassignedCount = 0;
-
-        for (Claim c : context.getClaimRepository().getAll()) {
-            if (c.getStatus() == ClaimStatus.DONE) {
-                grandTotalApprovedPayout += c.getClaimAmount();
-                grandTotalApprovedCount++;
-                if (c.getProcessedByUserId() == null || c.getProcessedByUserId().trim().isEmpty()) {
-                    unassignedPayout += c.getClaimAmount();
-                    unassignedCount++;
-                }
-            }
-        }
-
-        if (unassignedCount > 0) {
-            System.out.println("\nLegacy / Unassigned Approved Claims (pre-existing before Phase 7 tracking):");
-            System.out.println("Count: " + unassignedCount + " claim(s) | Payout: " + String.format("%,.2f VND", unassignedPayout));
-        }
-
-        System.out.println("\n--------------------------------------------------------------------------------");
-        System.out.println("Grand Total Approved Payout (All " + grandTotalApprovedCount + " Claims): "
-                + String.format("%,.2f VND", grandTotalApprovedPayout));
-        System.out.println("--------------------------------------------------------------------------------");
+    private static void viewTierBasedFinancialSummaryReport(AppContext context) {
+        new FinancialReportService(context).printTierBasedFinancialSummaryReport();
     }
 }

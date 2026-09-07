@@ -113,16 +113,27 @@ public abstract class Customer extends User {
     }
 
     /**
-     * Calculates the estimated patient co-pay for a given claim amount,
-     * applying the customer's membership tier discount to the standard 20% co-pay.
+     * Calculates the patient co-pay amount for a given claim amount,
+     * applying the customer's membership tier discount to the baseline 30% co-pay.
+     * Formula: Customer Co-Pay Amount = claimAmount * Effective Co-Pay Rate
+     * where Effective Co-Pay Rate = 30% * (1 - tier discount rate).
      *
-     * @param claimAmount the total claim amount
-     * @return the discounted patient co-pay amount
+     * @param claimAmount the total billed claim amount
+     * @return the customer out-of-pocket co-pay amount
      */
     public double calculatePatientCopay(double claimAmount) {
-        double standardCopay = claimAmount * 0.20;
-        double discountRate = getMembershipTier().getDiscountRate();
-        return standardCopay * (1.0 - discountRate);
+        return claimAmount * getMembershipTier().getEffectiveCopayRate();
+    }
+
+    /**
+     * Calculates the insurance payout amount for a given claim amount.
+     * Formula: Insurance Payout Amount = claimAmount - Customer Co-Pay Amount
+     *
+     * @param claimAmount the total billed claim amount
+     * @return the insurance payout amount
+     */
+    public double calculateInsurancePayout(double claimAmount) {
+        return claimAmount - calculatePatientCopay(claimAmount);
     }
 
     /**

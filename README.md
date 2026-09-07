@@ -153,7 +153,7 @@ Other customer accounts (`zoro`, `nami`, `natsu`, `erza`, `sherlock`, `haaland`,
 
 ## 5. Architecture Overview
 
-35 source files in `claimshield/`, organised into seven groups.
+36 source files in `claimshield/`, organised into seven groups.
 
 ```
 claimshield/
@@ -164,6 +164,7 @@ claimshield/
 │                            CustomerManageable, CardManageable, ClaimManageable
 ├── repositories             UserRepository, CustomerRepository,
 │                            CardRepository, ClaimRepository
+├── services / analytics     FinancialReportService
 ├── exceptions               ClaimShieldException (abstract),
 │                            InvalidClaimDateException,
 │                            InvalidStatusTransitionException
@@ -248,18 +249,22 @@ claim f-1000000010: cannot transition from NEW to DONE. Status must move forward
 one step at a time (NEW -> PROCESSING -> DONE).
 ```
 
-### 5.4 Membership tiers
+### 5.4 Membership tiers, Co-Pay & Discounts
 
-Tier is derived from the customer's cumulative **approved (`DONE`)** claim total:
+By default, standard customers have a **30% base co-pay rate** on the total billed `claimAmount` (meaning the customer pays 30% out of pocket and insurance covers 70%).
+Membership tier discounts directly reduce this co-pay rate based on cumulative **approved (`DONE`)** claims:
 
-| Tier | Approved total | Co-pay discount |
-|---|---|---|
-| SILVER | < 2,000,000 | 5% |
-| GOLD | ≥ 2,000,000 and < 5,000,000 | 10% |
-| PLATINUM | ≥ 5,000,000 | 15% |
+| Tier | Approved total | Co-pay discount | Effective Co-Pay Rate | Formula |
+|---|---|---|---|---|
+| STANDARD / Unranked | < 500,000 | 0% | **30.0%** | `30% × (1 − 0.00) = 30.0%` |
+| SILVER | 500,000 to < 2,000,000 | 5% | **28.5%** | `30% × (1 − 0.05) = 28.5%` |
+| GOLD | 2,000,000 to < 5,000,000 | 10% | **27.0%** | `30% × (1 − 0.10) = 27.0%` |
+| PLATINUM | ≥ 5,000,000 | 15% | **25.5%** | `30% × (1 − 0.15) = 25.5%` |
 
-The standard 20% co-pay is reduced by the tier discount, so a PLATINUM holder pays
-`20% × (1 − 0.15) = 17%`.
+**Derived Financial Calculations:**
+- **Customer Co-Pay Amount** = `claimAmount × Effective Co-Pay Rate`
+- **Insurance Payout Amount** = `claimAmount - Customer Co-Pay Amount`
+- **Customer Co-Pay Savings** = `(claimAmount × 30%) - Customer Co-Pay Amount`
 
 ### 5.5 Audit trail
 
@@ -294,7 +299,7 @@ Mutations auto-save immediately, and every role menu also offers an explicit
 | `data/users.txt` | 26 | `userId,username,password,fullName,email,role,status,customerId` |
 | `data/customers.txt` | 22 | `customerId,fullName,customerType,parentPolicyHolderId` |
 | `data/cards.txt` | 22 | `cardNumber,cardHolderId,policyOwnerId,expirationDate` |
-| `data/claims.txt` | 63 | `claimId,claimDate,insuredPersonId,cardNumber,examDate,claimAmount,status,documents,processedByUserId` |
+| `data/claims.txt` | 69 | `claimId,claimDate,insuredPersonId,cardNumber,examDate,claimAmount,status,documents,processedByUserId` |
 | `data/logs.txt` | append-only | `timestamp,userId,actionPerformed,targetEntityId` |
 
 Notes:
@@ -331,7 +336,7 @@ It covers all core domain types, interfaces, repositories, enums, exceptions, an
 ```
 .
 ├── README.md
-├── claimshield/            # 35 Java source files (package claimshield)
+├── claimshield/            # 36 Java source files (package claimshield)
 ├── data/                   # persistence files (loaded at start-up)
 │   ├── cards.txt
 │   ├── claims.txt

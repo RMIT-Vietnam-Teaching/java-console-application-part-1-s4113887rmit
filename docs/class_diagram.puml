@@ -1,0 +1,645 @@
+' =============================================================================
+' ClaimShield - UML Class Diagram
+' Generated FROM COMPILED BYTECODE (javap -p) so it cannot drift from the code.
+' Package: claimshield      Project: COSC3110/3111 Milestone 2
+'
+' Three views:
+'   1. Domain Model    - entities, inheritance hierarchy, enums
+'   2. Service Layer    - generic Manageable<T> interface, repositories, context
+'   3. Console Layer    - entry point and menu flows
+'
+' Regenerate: javac -d out claimshield/*.java && python3 gen_puml.py && python3 build_puml.py
+' =============================================================================
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam ClassBorderColor #34495E
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ArrowColor #2C3E50
+skinparam packageStyle rectangle
+skinparam roundcorner 6
+skinparam linetype ortho
+
+@startuml ClaimShield_Domain_Model
+title ClaimShield - 1. Domain Model
+
+abstract class User {
+    -userId : String
+    -username : String
+    -password : String
+    -fullName : String
+    -email : String
+    -role : UserRole
+    -status : UserStatus
+    --
+    +User(String, String, String, String, String, UserRole, UserStatus)
+    +getUserId() : String
+    +getUsername() : String
+    +getPassword() : String
+    +getFullName() : String
+    +getEmail() : String
+    +getRole() : UserRole
+    +getStatus() : UserStatus
+    +setUserId(String) : void
+    +setUsername(String) : void
+    +setPassword(String) : void
+    +setFullName(String) : void
+    +setEmail(String) : void
+    +setRole(UserRole) : void
+    +setStatus(UserStatus) : void
+    +displayDashboard() : void {abstract}
+    #toUserBaseFileString() : String
+    +toUserFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+class Admin extends User {
+    +Admin(String, String, String, String, String, UserStatus)
+    +displayDashboard() : void
+    +toUserFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+class ClaimsOfficer extends User {
+    +ClaimsOfficer(String, String, String, String, String, UserStatus)
+    +displayDashboard() : void
+    +toUserFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+abstract class Customer extends User {
+    -customerId : String
+    -insuranceCard : InsuranceCard
+    -totalClaimAmount : double
+    --
+    +Customer(String, String, String, String, String, UserStatus, String, InsuranceCard, double)
+    +Customer(String, String, String, String, String, UserStatus, String)
+    +getCustomerId() : String
+    +getId() : String
+    +getInsuranceCard() : InsuranceCard
+    +getTotalClaimAmount() : double
+    +getMembershipTier() : MembershipTier
+    +calculatePatientCopay(double) : double
+    +calculateInsurancePayout(double) : double
+    +setCustomerId(String) : void
+    +setId(String) : void
+    +setInsuranceCard(InsuranceCard) : void
+    +setTotalClaimAmount(double) : void
+    +getCustomerType() : String {abstract}
+    +getParentPolicyHolderId() : String {abstract}
+    +toCustomerFileString() : String {abstract}
+    +toUserFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+class PolicyHolder extends Customer {
+    -dependents : ArrayList<Dependent>
+    --
+    +PolicyHolder(String, String, String, String, String, UserStatus, String, InsuranceCard, double)
+    +PolicyHolder(String, String, String, String, String, UserStatus, String)
+    +getDependents() : ArrayList<Dependent>
+    +hasActiveDependents() : boolean
+    +addDependent(Dependent) : void
+    +removeDependent(Dependent) : void
+    +setDependents(ArrayList<Dependent>) : void
+    +getCustomerType() : String
+    +getParentPolicyHolderId() : String
+    +displayDashboard() : void
+    +toCustomerFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+class Dependent extends Customer {
+    -parentPolicyHolderId : String
+    --
+    +Dependent(String, String, String, String, String, UserStatus, String, InsuranceCard, double, String)
+    +Dependent(String, String, String, String, String, UserStatus, String, String)
+    +getParentPolicyHolderId() : String
+    +setParentPolicyHolderId(String) : void
+    +getCustomerType() : String
+    +displayDashboard() : void
+    +toCustomerFileString() : String
+    +toFileString() : String
+    +toString() : String
+}
+
+class InsuranceCard {
+    -cardNumber : String
+    -cardHolderId : String
+    -policyOwnerId : String
+    -expirationDate : LocalDateTime
+    --
+    +InsuranceCard(String, String, String, LocalDateTime)
+    +getCardNumber() : String
+    +getCardHolderId() : String
+    +getPolicyOwnerId() : String
+    +getExpirationDate() : LocalDateTime
+    +setCardHolderId(String) : void
+    +setPolicyOwnerId(String) : void
+    +setExpirationDate(LocalDateTime) : void
+    +toFileString() : String
+    +toString() : String
+}
+
+class Claim {
+    -id : String
+    -claimDate : LocalDateTime
+    -insuredPersonId : String
+    -cardNumber : String
+    -examDate : LocalDateTime
+    -documents : ArrayList<String>
+    -claimAmount : double
+    -status : ClaimStatus
+    -processedByUserId : String
+    --
+    +Claim(String, LocalDateTime, String, String, LocalDateTime, double, ClaimStatus, String)
+    +Claim(String, LocalDateTime, String, String, LocalDateTime, double, ClaimStatus)
+    +Claim(String, LocalDateTime, String, String, LocalDateTime, double, String)
+    +getId() : String
+    +getClaimDate() : LocalDateTime
+    +getInsuredPersonId() : String
+    +getCardNumber() : String
+    +getExamDate() : LocalDateTime
+    +getDocuments() : ArrayList<String>
+    +getClaimAmount() : double
+    +getStatus() : ClaimStatus
+    +getProcessedByUserId() : String
+    +setClaimDate(LocalDateTime) : void
+    +setInsuredPersonId(String) : void
+    +setCardNumber(String) : void
+    +setExamDate(LocalDateTime) : void
+    +addDocument(String) : void
+    +setClaimAmount(double) : void
+    +setStatus(ClaimStatus) : void
+    +setStatus(String) : void
+    +setProcessedByUserId(String) : void
+    +toFileString() : String
+    +toString() : String
+}
+
+enum UserRole {
+    ADMIN
+    OFFICER
+    CUSTOMER
+}
+
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+}
+
+enum ClaimStatus {
+    NEW
+    PROCESSING
+    DONE
+    --
+    +fromString(String) : ClaimStatus {static}
+}
+
+enum MembershipTier {
+    STANDARD
+    SILVER
+    GOLD
+    PLATINUM
+    --
+    +BASE_COPAY_RATE : double = 0.30 {static}
+    -discountRate : double
+    --
+    +getDiscountRate() : double
+    +getEffectiveCopayRate() : double
+    +fromString(String) : MembershipTier {static}
+    +computeTier(double) : MembershipTier {static}
+}
+
+
+' ---------- inheritance ----------
+User          <|-- Admin
+User          <|-- ClaimsOfficer
+User          <|-- Customer
+Customer      <|-- PolicyHolder
+Customer      <|-- Dependent
+
+' ---------- associations ----------
+User             "1"  -->  "1"      UserRole        : role >
+User             "1"  -->  "1"      UserStatus      : status >
+Customer         "1"  -->  "0..1"   InsuranceCard   : insuranceCard >
+Customer         "1"  ..>  "1"      MembershipTier  : getMembershipTier() >
+PolicyHolder     "1"  *--  "0..*"   Dependent       : dependents >
+Dependent        "1"  ..>  "1"      PolicyHolder    : parentPolicyHolderId >
+Claim            "*"  -->  "1"      ClaimStatus     : status >
+Claim            "*"  -->  "1"      Customer        : insuredPersonId >
+Claim            "*"  -->  "1"      InsuranceCard   : cardNumber >
+
+note bottom of MembershipTier
+  Effective co-pay = BASE_COPAY_RATE * (1 - discount)
+  STANDARD 30.0% | SILVER 28.5% | GOLD 27.0% | PLATINUM 25.5%
+end note
+
+@enduml
+
+@startuml ClaimShield_Service_Layer
+title ClaimShield - 2. Service / Persistence Layer
+
+interface Manageable {
+    +add(T) : boolean throws ClaimShieldException {abstract}
+    +update(T) : boolean throws ClaimShieldException {abstract}
+    +delete(String) : boolean {abstract}
+    +getById(String) : T {abstract}
+    +getAll() : List<T> {abstract}
+}
+
+interface UserManageable extends Manageable<User> {
+    +authenticate(String, String) : User {abstract}
+}
+
+interface CustomerManageable extends Manageable<Customer> {
+    +filterByType(String) : List<Customer> {abstract}
+    +filterByParentPolicyHolder(String) : List<Customer> {abstract}
+    +searchByName(String) : List<Customer> {abstract}
+}
+
+interface CardManageable extends Manageable<InsuranceCard> {
+    +getByCardHolderId(String) : InsuranceCard {abstract}
+    +getByPolicyOwnerId(String) : List<InsuranceCard> {abstract}
+    +filterExpiringBefore(LocalDateTime) : List<InsuranceCard> {abstract}
+}
+
+interface ClaimManageable extends Manageable<Claim> {
+    +filterByStatus(ClaimStatus) : List<Claim> {abstract}
+    +filterByDateRange(LocalDateTime, LocalDateTime) : List<Claim> {abstract}
+    +filterByPolicyHolderFamily(String) : List<Claim> {abstract}
+    +filterByCardNumber(String) : List<Claim> {abstract}
+}
+
+class UserRepository implements UserManageable {
+    -users : ArrayList<User>
+    --
+    +UserRepository()
+    +add(User) : boolean
+    +update(User) : boolean
+    +delete(String) : boolean
+    +getById(String) : User
+    +getAll() : List<User>
+    +getByUsername(String) : User
+    +getUserByCustomerId(String) : User
+    +registerCustomerUser(Customer) : void
+    +authenticate(String, String) : User
+    +loadUsersFromFile(String) : void
+    +saveUsersToFile(String) : void
+}
+
+class CustomerRepository implements CustomerManageable {
+    -customers : ArrayList<Customer>
+    --
+    +CustomerRepository()
+    +add(Customer) : boolean
+    +update(Customer) : boolean
+    +delete(String) : boolean
+    +getById(String) : Customer
+    +getAll() : List<Customer>
+    +filterByType(String) : List<Customer>
+    +filterByParentPolicyHolder(String) : List<Customer>
+    +searchByName(String) : List<Customer>
+    +loadCustomersFromFile(String, UserRepository) : void
+    +loadCustomersFromFile(String) : void
+    +saveCustomersToFile(String) : void
+}
+
+class CardRepository implements CardManageable {
+    -cards : ArrayList<InsuranceCard>
+    -claimRepository : ClaimRepository
+    --
+    +CardRepository()
+    +CardRepository(ClaimRepository)
+    +setClaimRepository(ClaimRepository) : void
+    +add(InsuranceCard) : boolean
+    +update(InsuranceCard) : boolean
+    +delete(String) : boolean
+    +hasClaimsForCard(String) : boolean
+    +getById(String) : InsuranceCard
+    +getByCardHolderId(String) : InsuranceCard
+    +getByPolicyOwnerId(String) : List<InsuranceCard>
+    +filterExpiringBefore(LocalDateTime) : List<InsuranceCard>
+    +getAll() : List<InsuranceCard>
+    +loadCardsFromFile(String) : void
+    +saveCardsToFile(String) : void
+}
+
+class ClaimRepository implements ClaimManageable {
+    -claims : ArrayList<Claim>
+    -customerRepository : CustomerRepository
+    -cardRepository : CardRepository
+    --
+    +ClaimRepository()
+    +ClaimRepository(CustomerRepository, CardRepository)
+    +setCustomerRepository(CustomerRepository) : void
+    +setCardRepository(CardRepository) : void
+    +add(Claim) : boolean throws InvalidClaimDateException
+    +update(Claim) : boolean throws InvalidStatusTransitionException
+    +updateClaimStatus(String, ClaimStatus) : boolean throws InvalidStatusTransitionException
+    +updateClaimStatus(String, String) : boolean throws InvalidStatusTransitionException
+    +addDocument(String, String) : boolean
+    +delete(String) : boolean
+    +getById(String) : Claim
+    +getAll() : List<Claim>
+    +filterByCardNumber(String) : List<Claim>
+    +filterByStatus(ClaimStatus) : List<Claim>
+    +filterByDateRange(LocalDateTime, LocalDateTime) : List<Claim>
+    +filterByPolicyHolderFamily(String) : List<Claim>
+    +getApprovedPayoutByDateRange(LocalDateTime, LocalDateTime) : double
+    +getApprovedCopayByDateRange(LocalDateTime, LocalDateTime) : double
+    +getApprovedClaimsByDateRange(LocalDateTime, LocalDateTime) : List<Claim>
+    +getApprovedPayoutByOfficer(String) : double
+    +getApprovedCopayByOfficer(String) : double
+    +getApprovedClaimsByOfficer(String) : List<Claim>
+    -statusRank(ClaimStatus) : int
+    +loadClaimsFromFile(String) : void
+    +saveClaimsToFile(String) : void
+}
+
+class FinancialReportService {
+    -context : AppContext
+    --
+    +FinancialReportService(AppContext)
+    +printOverallClaimsVolumeReport() : void
+    +printPayoutPerOfficerReport() : void
+    +printTierBasedFinancialSummaryReport() : void
+}
+
+class AppContext {
+    -userRepository : UserRepository
+    -customerRepository : CustomerRepository
+    -cardRepository : CardRepository
+    -claimRepository : ClaimRepository
+    -currentSessionUser : User {static}
+    -usersPath : String
+    -customersPath : String
+    -cardsPath : String
+    -claimsPath : String
+    -logsPath : String
+    -auditTrail : List<AuditLogger.AuditEntry>
+    --
+    +AppContext()
+    +setCurrentSessionUser(User) : void {static}
+    +getCurrentSessionUser() : User {static}
+    +getCurrentActorId() : String {static}
+    +getAuditTrail() : List<AuditLogger.AuditEntry>
+    +getUserRepository() : UserRepository
+    +getCustomerRepository() : CustomerRepository
+    +getCardRepository() : CardRepository
+    +getClaimRepository() : ClaimRepository
+    +loadAll(String, String, String, String, String) : void
+    +loadAll(String, String, String, String) : void
+    +loadAuditLog() : int
+    +wireRelationships() : void
+    +calculateCustomerClaimTotals() : void
+    +registerPolicyHolder(String, String, String, String, String, String) : boolean
+    +registerDependent(String, String, String, String, String, String, String) : boolean
+    +registerAdmin(String, String, String, String, String) : boolean
+    +registerOfficer(String, String, String, String, String) : boolean
+    -registerStaffUser(String, String, String, String, String, UserRole) : boolean
+    +saveAll(String, String, String, String) : void
+    +autoSave() : void
+    +saveAll() : void
+}
+
+class AuditLogger {
+    -LOG_FILE_PATH : String {static}
+    -FORMATTER : DateTimeFormatter {static}
+    --
+    +AuditLogger()
+    +log(String, String, String) : void {static}
+    +readLogsMostRecentFirst() : List<AuditLogger.AuditEntry> {static}
+    +readLogsMostRecentFirst(String) : List<AuditLogger.AuditEntry> {static}
+}
+
+class "AuditLogger.AuditEntry" as AuditEntry {
+    -timestamp : String
+    -actorId : String
+    -action : String
+    -targetId : String
+    --
+    +getTimestamp() : String
+    +getActorId() : String
+    +getAction() : String
+    +getTargetId() : String
+    +toString() : String
+}
+
+class Validator {
+    +USERNAME_MIN_LENGTH : int {static}
+    +USERNAME_MAX_LENGTH : int {static}
+    +PASSWORD_MIN_LENGTH : int {static}
+    +PASSWORD_MAX_LENGTH : int {static}
+    +NAME_MIN_LENGTH : int {static}
+    +NAME_MAX_LENGTH : int {static}
+    +EMAIL_MIN_LENGTH : int {static}
+    +EMAIL_MAX_LENGTH : int {static}
+    --
+    +Validator()
+    +isValidCustomerId(String) : boolean {static}
+    +isValidClaimId(String) : boolean {static}
+    +isValidCardNumber(String) : boolean {static}
+    +isPositiveAmount(double) : boolean {static}
+    +isValidDocumentName(String, String, String) : boolean {static}
+    +isValidCustomerType(String) : boolean {static}
+    +isValidStatus(String) : boolean {static}
+    +isValidStatus(ClaimStatus) : boolean {static}
+    +isValidUserId(String) : boolean {static}
+    +isPolicyHolder(Customer) : boolean {static}
+    +isValidLength(String, int, int) : boolean {static}
+    +isValidUsername(String) : boolean {static}
+    +isValidPassword(String) : boolean {static}
+    +isValidFullName(String) : boolean {static}
+    +isValidEmail(String) : boolean {static}
+}
+
+abstract class ClaimShieldException extends Exception {
+    #ClaimShieldException(String)
+    #ClaimShieldException(String, Throwable)
+}
+
+class InvalidClaimDateException extends ClaimShieldException {
+    +InvalidClaimDateException(String)
+    +InvalidClaimDateException()
+    +InvalidClaimDateException(String, Throwable)
+}
+
+class InvalidStatusTransitionException extends ClaimShieldException {
+    +InvalidStatusTransitionException(String)
+    +InvalidStatusTransitionException()
+    +InvalidStatusTransitionException(String, Throwable)
+}
+
+
+' ---------- generic CRUD contract ----------
+Manageable            <|-- UserManageable
+Manageable            <|-- CustomerManageable
+Manageable            <|-- CardManageable
+Manageable            <|-- ClaimManageable
+
+UserManageable        <|.. UserRepository
+CustomerManageable    <|.. CustomerRepository
+CardManageable        <|.. CardRepository
+ClaimManageable       <|.. ClaimRepository
+
+Manageable            ..>  ClaimShieldException   : throws >
+ClaimShieldException  <|-- InvalidClaimDateException
+ClaimShieldException  <|-- InvalidStatusTransitionException
+
+' ---------- wiring ----------
+AppContext            "1"  *--  "1"  UserRepository
+AppContext            "1"  *--  "1"  CustomerRepository
+AppContext            "1"  *--  "1"  CardRepository
+AppContext            "1"  *--  "1"  ClaimRepository
+AppContext            "1"  -->  "1"  AuditLogger
+AppContext            "1"  -->  "*"  AuditEntry      : auditTrail >
+
+ClaimRepository       "1"  -->  "1"  CustomerRepository
+ClaimRepository       "1"  -->  "1"  CardRepository
+CardRepository        "1"  -->  "1"  ClaimRepository  : hasClaimsForCard() >
+AuditLogger           "1"  *--  "*"  AuditEntry
+
+FinancialReportService "1" -->  "1"  AppContext
+UserRepository        "1"  -->  "*"  User
+CustomerRepository    "1"  -->  "*"  Customer
+CardRepository        "1"  -->  "*"  InsuranceCard
+ClaimRepository       "1"  -->  "*"  Claim
+
+@enduml
+
+@startuml ClaimShield_Console_Layer
+title ClaimShield - 3. Console / UI Layer
+
+class Main {
+    -appContext : AppContext {static}
+    --
+    +Main()
+    +main(String[]) : void {static}
+    -printBanner() : void {static}
+    -printLoadSummary(AppContext) : void {static}
+    -runLoginLoop(AppContext, Scanner) : void {static}
+    -runUserSession(AppContext, User, Scanner) : void {static}
+    -saveAndPrintGoodbye() : void {static}
+}
+
+class ConsoleSupport {
+    ~USERS_FILE : String {static}
+    ~CUSTOMERS_FILE : String {static}
+    ~CARDS_FILE : String {static}
+    ~CLAIMS_FILE : String {static}
+    ~LOGS_FILE : String {static}
+    --
+    -ConsoleSupport()
+    ~readLine(Scanner) : String {static}
+    ~validateAccountFields(String, String, String, String) : String {static}
+}
+
+class "ConsoleSupport.EndOfInputException" as EndOfInputException extends RuntimeException {
+}
+
+class AdminMenu {
+    -AdminMenu()
+    ~show(AppContext, Admin, Scanner) : void {static}
+    -adminClaimSubMenu(AppContext, Scanner) : void {static}
+    -viewSystemSummary(AppContext) : void {static}
+    -adminUserSubMenu(AppContext, Scanner) : void {static}
+    -adminToggleUserStatusFlow(AppContext, Scanner) : void {static}
+    -countActiveAdmins(AppContext) : int {static}
+    -adminSearchUserFlow(AppContext, Scanner) : void {static}
+    -adminAddStaffFlow(AppContext, Scanner, UserRole) : void {static}
+    -adminUpdateUserFlow(AppContext, Scanner) : void {static}
+    -viewAuditLog() : void {static}
+    -adminReportsSubMenu(AppContext, Scanner) : void {static}
+    -viewPayoutByTimeframeSubMenu(AppContext, Scanner) : void {static}
+    -viewPayoutPerOfficerReport(AppContext) : void {static}
+    -viewTierBasedFinancialSummaryReport(AppContext) : void {static}
+}
+
+class OfficerMenu {
+    -OfficerMenu()
+    ~show(AppContext, ClaimsOfficer, Scanner) : void {static}
+}
+
+class CustomerPortal {
+    -CustomerPortal()
+    ~show(AppContext, Customer, Scanner) : void {static}
+    -viewCustomerProfile(Customer) : void {static}
+    -viewCustomerCard(Customer) : void {static}
+    -viewCustomerClaims(AppContext, Customer) : void {static}
+    -viewPolicyHolderDependents(AppContext, PolicyHolder) : void {static}
+    -viewDependentParent(AppContext, Dependent) : void {static}
+}
+
+class CustomerConsole {
+    -CustomerConsole()
+    ~adminCustomerSubMenu(AppContext, Scanner) : void {static}
+    -adminAddPolicyHolderFlow(AppContext, Scanner) : void {static}
+    -adminAddDependentFlow(AppContext, Scanner) : void {static}
+    ~adminViewAllCustomers(AppContext) : void {static}
+    -printCustomerRow(Customer) : void {static}
+    -searchCustomerByNameFlow(AppContext, Scanner) : void {static}
+    -listCustomersByTypeFlow(AppContext, Scanner) : void {static}
+    -listDependentsOfPolicyHolderFlow(AppContext, Scanner) : void {static}
+    -adminUpdateCustomerFlow(AppContext, Scanner) : void {static}
+    -viewCustomerByIdFlow(AppContext, Scanner) : void {static}
+    -adminSoftDeleteCustomerFlow(AppContext, Scanner) : void {static}
+}
+
+class CardConsole {
+    -CardConsole()
+    ~adminCardSubMenu(AppContext, Scanner) : void {static}
+    -addCardFlow(AppContext, Scanner) : void {static}
+    ~viewAllCards(AppContext) : void {static}
+    -viewCardByNumberFlow(AppContext, Scanner) : void {static}
+    -removeCardFlow(AppContext, Scanner) : void {static}
+    -findCardByHolderFlow(AppContext, Scanner) : void {static}
+    -viewCardsByPolicyOwnerFlow(AppContext, Scanner) : void {static}
+    -viewCardsExpiringBeforeFlow(AppContext, Scanner) : void {static}
+    -adminUpdateCardFlow(AppContext, Scanner) : void {static}
+}
+
+class ClaimConsole {
+    -ClaimConsole()
+    ~addClaimFlow(AppContext, Scanner) : void {static}
+    ~addDocumentFlow(AppContext, Scanner) : void {static}
+    ~updateClaimStatusFlow(AppContext, Scanner) : void {static}
+    ~viewAllClaims(AppContext) : void {static}
+    ~viewClaimByIdFlow(AppContext, Scanner) : void {static}
+    ~filterClaimsByStatusFlow(AppContext, Scanner) : void {static}
+    ~filterClaimsByDateRangeFlow(AppContext, Scanner) : void {static}
+    ~filterClaimsByFamilyFlow(AppContext, Scanner) : void {static}
+    ~removeClaimFlow(AppContext, Scanner) : void {static}
+}
+
+
+Main            "1"  -->  "1"  AppContext
+Main            "1"  -->  "1"  AdminMenu
+Main            "1"  -->  "1"  OfficerMenu
+Main            "1"  -->  "1"  CustomerPortal
+
+AdminMenu       "1"  -->  "1"  CustomerConsole
+AdminMenu       "1"  -->  "1"  CardConsole
+AdminMenu       "1"  -->  "1"  ClaimConsole
+AdminMenu       "1"  -->  "1"  FinancialReportService
+OfficerMenu     "1"  -->  "1"  CustomerConsole
+OfficerMenu     "1"  -->  "1"  CardConsole
+OfficerMenu     "1"  -->  "1"  ClaimConsole
+
+Main            ..>  ConsoleSupport
+AdminMenu       ..>  ConsoleSupport
+OfficerMenu     ..>  ConsoleSupport
+CustomerPortal  ..>  ConsoleSupport
+CustomerConsole ..>  ConsoleSupport
+CardConsole     ..>  ConsoleSupport
+ClaimConsole    ..>  ConsoleSupport
+
+CustomerConsole ..>  Validator
+CardConsole     ..>  Validator
+
+@enduml
