@@ -77,13 +77,20 @@ final class ClaimConsole {
         System.out.print("Document Name (format ClaimId_CardNumber_Name.pdf): ");
         String documentName = ConsoleSupport.readLine(sc).trim();
 
-        boolean success = context.getClaimRepository().addDocument(claimId, documentName);
-        if (success) {
-            context.autoSave();
-            System.out.println("Document added successfully to claim " + claimId + ". (Data auto-saved to files)");
-        } else {
-            System.out.println(
-                    "Failed to add document. Please verify claim exists, is not already DONE, and document format matches ClaimId_CardNumber_Name.pdf.");
+        try {
+            boolean success = context.getClaimRepository().addDocument(claimId, documentName);
+            if (success) {
+                context.autoSave();
+                System.out.println("Document added successfully to claim " + claimId + ". (Data auto-saved to files)");
+            } else {
+                System.out.println("Failed to add document. Claim not found with ID: " + claimId);
+            }
+        } catch (InvalidStatusTransitionException e) {
+            System.out.println("Business Rule Violation (Claim Immutable): " + e.getMessage());
+        } catch (InvalidDocumentNameException e) {
+            System.out.println("Business Rule Violation (Invalid Document Name): " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error adding document: " + e.getMessage());
         }
     }
 

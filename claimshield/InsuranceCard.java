@@ -30,6 +30,15 @@ public class InsuranceCard {
         return cardNumber;
     }
 
+    /**
+     * Gets the unique card identifier (alias for getCardNumber).
+     *
+     * @return the 10-digit card number
+     */
+    public String getId() {
+        return cardNumber;
+    }
+
     public String getCardHolderId() {
         return cardHolderId;
     }

@@ -23,14 +23,16 @@ final class OfficerMenu {
             System.out.println("1. Process & Update Claim Status (NEW -> PROCESSING -> DONE)");
             System.out.println("2. Add Supporting Document to Claim");
             System.out.println("3. View All Claims");
-            System.out.println("4. Filter Claims by Status");
-            System.out.println("5. Filter Claims by Date Range");
-            System.out.println("6. Filter Claims by PolicyHolder Family");
-            System.out.println("7. View Customer Directory (Read-only)");
-            System.out.println("8. View Insurance Cards (Read-only)");
-            System.out.println("9. View Claim by ID");
-            System.out.println("10. Save All Changes to Files");
-            System.out.println("11. Logout to Login Screen");
+            System.out.println("4. View Claim by ID");
+            System.out.println("5. Filter Claims by Status");
+            System.out.println("6. Filter Claims by Date Range");
+            System.out.println("7. Filter Claims by PolicyHolder Family");
+            System.out.println("8. View Customer Directory (Read-only)");
+            System.out.println("9. View Customer Profile by ID");
+            System.out.println("10. View Insurance Cards (Read-only)");
+            System.out.println("11. View Insurance Card by Number");
+            System.out.println("12. Save All Changes to Files");
+            System.out.println("13. Logout to Login Screen");
             System.out.print("Choose an option: ");
             String choice = ConsoleSupport.readLine(sc).trim();
 
@@ -45,33 +47,39 @@ final class OfficerMenu {
                     ClaimConsole.viewAllClaims(context);
                     break;
                 case "4":
-                    ClaimConsole.filterClaimsByStatusFlow(context, sc);
-                    break;
-                case "5":
-                    ClaimConsole.filterClaimsByDateRangeFlow(context, sc);
-                    break;
-                case "6":
-                    ClaimConsole.filterClaimsByFamilyFlow(context, sc);
-                    break;
-                case "7":
-                    CustomerConsole.adminViewAllCustomers(context);
-                    break;
-                case "8":
-                    CardConsole.viewAllCards(context);
-                    break;
-                case "9":
                     ClaimConsole.viewClaimByIdFlow(context, sc);
                     break;
+                case "5":
+                    ClaimConsole.filterClaimsByStatusFlow(context, sc);
+                    break;
+                case "6":
+                    ClaimConsole.filterClaimsByDateRangeFlow(context, sc);
+                    break;
+                case "7":
+                    ClaimConsole.filterClaimsByFamilyFlow(context, sc);
+                    break;
+                case "8":
+                    CustomerConsole.adminViewAllCustomers(context);
+                    break;
+                case "9":
+                    CustomerConsole.viewCustomerByIdFlow(context, sc);
+                    break;
                 case "10":
+                    CardConsole.viewAllCards(context);
+                    break;
+                case "11":
+                    CardConsole.viewCardByNumberFlow(context, sc);
+                    break;
+                case "12":
                     context.saveAll(ConsoleSupport.USERS_FILE, ConsoleSupport.CUSTOMERS_FILE, ConsoleSupport.CARDS_FILE, ConsoleSupport.CLAIMS_FILE);
                     System.out.println("All system datasets saved successfully to files.");
                     break;
-                case "11":
+                case "13":
                     System.out.println("Logging out from Claims Officer session...");
                     inSession = false;
                     break;
                 default:
-                    System.out.println("Invalid option. Please choose between 1 and 11.");
+                    System.out.println("Invalid option. Please choose between 1 and 13.");
             }
         }
     }

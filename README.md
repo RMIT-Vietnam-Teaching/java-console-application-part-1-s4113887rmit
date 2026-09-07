@@ -321,13 +321,14 @@ Notes:
 
 ## 7. Class Diagram
 
-The full UML class diagram for the final architecture is at:
+The UML class diagrams for the final architecture are available in high-resolution at:
 
-**`docs/class_diagram.png`**
+- **Full Architecture:** `docs/class_diagram.png` (and PlantUML source `docs/class_diagram.puml`)
+- **Diagram 1 - Domain Model & Hierarchies:** `docs/ClaimShield_Domain_Model.png`
+- **Diagram 2 - Service & Repository Layer:** `docs/ClaimShield_Service_Layer.png`
+- **Diagram 3 - Console & UI Controller Layer:** `docs/ClaimShield_Console_Layer.png`
 
-It covers all core domain types, interfaces, repositories, enums, exceptions, and infrastructure, formatted into two clear sections:
-- **Diagram 1:** User Hierarchy & Domain Model
-- **Diagram 2:** Service Layer - Interfaces, Repositories & Orchestrator
+It covers all core domain types, interfaces, repositories, enums, custom exceptions (`InvalidClaimDateException`, `InvalidStatusTransitionException`, `InvalidDocumentNameException`), and persistence infrastructure.
 
 ---
 
@@ -336,7 +337,7 @@ It covers all core domain types, interfaces, repositories, enums, exceptions, an
 ```
 .
 ├── README.md
-├── claimshield/            # 36 Java source files (package claimshield)
+├── claimshield/            # 37 Java source files (package claimshield)
 ├── data/                   # persistence files (loaded at start-up)
 │   ├── cards.txt
 │   ├── claims.txt
@@ -344,8 +345,12 @@ It covers all core domain types, interfaces, repositories, enums, exceptions, an
 │   ├── logs.txt
 │   └── users.txt
 ├── docs/
-│   └── class_diagram.png
-└── out/                    # compiled .class files (generated, git-ignored)
+│   ├── ClaimShield_Console_Layer.png
+│   ├── ClaimShield_Domain_Model.png
+│   ├── ClaimShield_Service_Layer.png
+│   ├── class_diagram.png
+│   └── class_diagram.puml
+└── bin/                    # compiled .class files (generated)
 ```
 
 ---
@@ -361,5 +366,6 @@ It covers all core domain types, interfaces, repositories, enums, exceptions, an
    illegal `NEW → DONE` jump to show the business rule, then advance a claim
    correctly `NEW → PROCESSING`.
 5. Log out, log in as `messi` → **1. View My Profile** to show **PLATINUM / 15%**.
-   Repeat with `dangnn` (GOLD) and `saka` (SILVER) to contrast the tiers.
+   Repeat with `dangnn` (GOLD / 10%), `zoro` (SILVER / 5%), and `saka` (STANDARD / 0%)
+   to contrast all 4 membership tiers and their effective co-pay rates.
 6. Show `data/logs.txt` growing with the audit trail from the actions above.

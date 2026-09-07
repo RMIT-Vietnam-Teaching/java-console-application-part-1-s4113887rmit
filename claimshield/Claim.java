@@ -2,6 +2,7 @@ package claimshield;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
@@ -16,7 +17,7 @@ public class Claim {
     private String insuredPersonId;
     private String cardNumber;
     private LocalDateTime examDate;
-    private ArrayList<String> documents;
+    private List<String> documents;
     private double claimAmount;
     private ClaimStatus status;
     private String processedByUserId;
@@ -70,6 +71,15 @@ public class Claim {
         return id;
     }
 
+    /**
+     * Gets the unique claim identifier, alias for getId().
+     *
+     * @return the claim ID (f-10digits)
+     */
+    public String getClaimId() {
+        return id;
+    }
+
     public LocalDateTime getClaimDate() {
         return claimDate;
     }
@@ -86,7 +96,7 @@ public class Claim {
         return examDate;
     }
 
-    public ArrayList<String> getDocuments() {
+    public List<String> getDocuments() {
         return new ArrayList<>(documents);
     }
 

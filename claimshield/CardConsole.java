@@ -128,7 +128,7 @@ final class CardConsole {
         }
     }
 
-    private static void viewCardByNumberFlow(AppContext context, Scanner sc) {
+    static void viewCardByNumberFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- View Insurance Card by Card Number ---");
         System.out.print("Enter Card Number: ");
         String cardNumber = ConsoleSupport.readLine(sc).trim();

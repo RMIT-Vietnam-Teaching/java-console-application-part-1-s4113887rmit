@@ -187,9 +187,10 @@ public class CustomerRepository implements CustomerManageable {
                     continue;
                 }
 
-                String[] parts = line.split(",");
+                String[] parts = line.split(",", -1);
                 if (parts.length != 4) {
-                    System.out.println("Skipping invalid customer line: " + line);
+                    System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                            + "' -> Reason: Expected 4 columns (customerId,fullName,type,parentId), got " + parts.length + ".");
                     continue;
                 }
 
@@ -197,7 +198,33 @@ public class CustomerRepository implements CustomerManageable {
                     String customerId = parts[0].trim();
                     String fullName = parts[1].trim();
                     String customerType = parts[2].trim();
-                    String parentId = parts[3].trim().equals("null") ? null : parts[3].trim();
+                    String parentId = parts[3].trim().equalsIgnoreCase("null") || parts[3].trim().isEmpty() ? null : parts[3].trim();
+
+                    if (!Validator.isValidCustomerId(customerId)) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: Customer ID '" + customerId + "' does not match format c-XXXXXXX (7 digits).");
+                        continue;
+                    }
+                    if (getById(customerId) != null) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: Duplicate customer ID '" + customerId + "'.");
+                        continue;
+                    }
+                    if (!Validator.isValidCustomerType(customerType)) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: Customer type '" + customerType + "' must be PolicyHolder or Dependent.");
+                        continue;
+                    }
+                    if ("PolicyHolder".equalsIgnoreCase(customerType) && parentId != null) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: PolicyHolder cannot have a parentPolicyHolderId (got '" + parentId + "').");
+                        continue;
+                    }
+                    if ("Dependent".equalsIgnoreCase(customerType) && parentId != null && !Validator.isValidCustomerId(parentId)) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: Parent PolicyHolder ID '" + parentId + "' does not match format c-XXXXXXX.");
+                        continue;
+                    }
 
                     // Two-Pass Join: Look up login credentials from UserRepository by customerId
                     User user = (userRepo != null) ? userRepo.getUserByCustomerId(customerId) : null;
@@ -215,8 +242,9 @@ public class CustomerRepository implements CustomerManageable {
                                 parentId);
                     }
 
-                    if (customer == null || !Validator.isValidCustomerId(customer.getId()) || getById(customer.getId()) != null) {
-                        System.out.println("Skipping invalid customer line: " + line);
+                    if (customer == null) {
+                        System.out.println("[WARNING] Skipping invalid customer line: '" + line
+                                + "' -> Reason: Unable to instantiate customer object.");
                     } else {
                         customers.add(customer);
                         if (userRepo != null) {
@@ -225,7 +253,7 @@ public class CustomerRepository implements CustomerManageable {
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("Skipping invalid customer line: " + line + " (" + e.getMessage() + ")");
+                    System.out.println("[WARNING] Skipping invalid customer line: '" + line + "' -> Reason: " + e.getMessage());
                 }
             }
         } catch (IOException e) {

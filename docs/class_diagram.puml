@@ -97,15 +97,15 @@ abstract class Customer extends User {
 }
 
 class PolicyHolder extends Customer {
-    -dependents : ArrayList<Dependent>
+    -dependents : List<Dependent>
     --
     +PolicyHolder(String, String, String, String, String, UserStatus, String, InsuranceCard, double)
     +PolicyHolder(String, String, String, String, String, UserStatus, String)
-    +getDependents() : ArrayList<Dependent>
+    +getDependents() : List<Dependent>
     +hasActiveDependents() : boolean
     +addDependent(Dependent) : void
     +removeDependent(Dependent) : void
-    +setDependents(ArrayList<Dependent>) : void
+    +setDependents(List<Dependent>) : void
     +getCustomerType() : String
     +getParentPolicyHolderId() : String
     +displayDashboard() : void
@@ -136,6 +136,7 @@ class InsuranceCard {
     --
     +InsuranceCard(String, String, String, LocalDateTime)
     +getCardNumber() : String
+    +getId() : String
     +getCardHolderId() : String
     +getPolicyOwnerId() : String
     +getExpirationDate() : LocalDateTime
@@ -152,7 +153,7 @@ class Claim {
     -insuredPersonId : String
     -cardNumber : String
     -examDate : LocalDateTime
-    -documents : ArrayList<String>
+    -documents : List<String>
     -claimAmount : double
     -status : ClaimStatus
     -processedByUserId : String
@@ -161,11 +162,12 @@ class Claim {
     +Claim(String, LocalDateTime, String, String, LocalDateTime, double, ClaimStatus)
     +Claim(String, LocalDateTime, String, String, LocalDateTime, double, String)
     +getId() : String
+    +getClaimId() : String
     +getClaimDate() : LocalDateTime
     +getInsuredPersonId() : String
     +getCardNumber() : String
     +getExamDate() : LocalDateTime
-    +getDocuments() : ArrayList<String>
+    +getDocuments() : List<String>
     +getClaimAmount() : double
     +getStatus() : ClaimStatus
     +getProcessedByUserId() : String
@@ -343,7 +345,7 @@ class ClaimRepository implements ClaimManageable {
     +update(Claim) : boolean throws InvalidStatusTransitionException
     +updateClaimStatus(String, ClaimStatus) : boolean throws InvalidStatusTransitionException
     +updateClaimStatus(String, String) : boolean throws InvalidStatusTransitionException
-    +addDocument(String, String) : boolean
+    +addDocument(String, String) : boolean throws InvalidStatusTransitionException, InvalidDocumentNameException
     +delete(String) : boolean
     +getById(String) : Claim
     +getAll() : List<Claim>
@@ -476,6 +478,12 @@ class InvalidStatusTransitionException extends ClaimShieldException {
     +InvalidStatusTransitionException(String, Throwable)
 }
 
+class InvalidDocumentNameException extends ClaimShieldException {
+    +InvalidDocumentNameException(String)
+    +InvalidDocumentNameException()
+    +InvalidDocumentNameException(String, Throwable)
+}
+
 
 ' ---------- generic CRUD contract ----------
 Manageable            <|-- UserManageable
@@ -491,6 +499,7 @@ ClaimManageable       <|.. ClaimRepository
 Manageable            ..>  ClaimShieldException   : throws >
 ClaimShieldException  <|-- InvalidClaimDateException
 ClaimShieldException  <|-- InvalidStatusTransitionException
+ClaimShieldException  <|-- InvalidDocumentNameException
 
 ' ---------- wiring ----------
 AppContext            "1"  *--  "1"  UserRepository
@@ -559,6 +568,7 @@ class AdminMenu {
     -viewPayoutByTimeframeSubMenu(AppContext, Scanner) : void {static}
     -viewPayoutPerOfficerReport(AppContext) : void {static}
     -viewTierBasedFinancialSummaryReport(AppContext) : void {static}
+    -viewFilteredClaimsSearchSubMenu(AppContext, Scanner) : void {static}
 }
 
 class OfficerMenu {
@@ -587,7 +597,7 @@ class CustomerConsole {
     -listCustomersByTypeFlow(AppContext, Scanner) : void {static}
     -listDependentsOfPolicyHolderFlow(AppContext, Scanner) : void {static}
     -adminUpdateCustomerFlow(AppContext, Scanner) : void {static}
-    -viewCustomerByIdFlow(AppContext, Scanner) : void {static}
+    ~viewCustomerByIdFlow(AppContext, Scanner) : void {static}
     -adminSoftDeleteCustomerFlow(AppContext, Scanner) : void {static}
 }
 
@@ -596,7 +606,7 @@ class CardConsole {
     ~adminCardSubMenu(AppContext, Scanner) : void {static}
     -addCardFlow(AppContext, Scanner) : void {static}
     ~viewAllCards(AppContext) : void {static}
-    -viewCardByNumberFlow(AppContext, Scanner) : void {static}
+    ~viewCardByNumberFlow(AppContext, Scanner) : void {static}
     -removeCardFlow(AppContext, Scanner) : void {static}
     -findCardByHolderFlow(AppContext, Scanner) : void {static}
     -viewCardsByPolicyOwnerFlow(AppContext, Scanner) : void {static}

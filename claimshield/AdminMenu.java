@@ -399,7 +399,8 @@ final class AdminMenu {
             System.out.println("2. Total Approved Payout & Customer Co-Pay by Timeframe (Day/Week/Month/Custom)");
             System.out.println("3. Total Claim Payouts & Co-Pays Processed per Claims Officer");
             System.out.println("4. Tier-Based Financial Summary (Standard, Silver, Gold, Platinum)");
-            System.out.println("5. Back to Admin Menu");
+            System.out.println("5. Filtered Claims Search (Status / Date Range / PolicyHolder Family)");
+            System.out.println("6. Back to Admin Menu");
             System.out.print("Choose an option: ");
             String choice = ConsoleSupport.readLine(sc).trim();
 
@@ -417,10 +418,43 @@ final class AdminMenu {
                     viewTierBasedFinancialSummaryReport(context);
                     break;
                 case "5":
+                    viewFilteredClaimsSearchSubMenu(context, sc);
+                    break;
+                case "6":
                     back = true;
                     break;
                 default:
                     System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private static void viewFilteredClaimsSearchSubMenu(AppContext context, Scanner sc) {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n--- Filtered Claims Search ---");
+            System.out.println("1. Filter Claims by Status");
+            System.out.println("2. Filter Claims by Date Range");
+            System.out.println("3. Filter Claims by PolicyHolder Family Group");
+            System.out.println("4. Back to Reports Menu");
+            System.out.print("Choose a filter: ");
+            String choice = ConsoleSupport.readLine(sc).trim();
+
+            switch (choice) {
+                case "1":
+                    ClaimConsole.filterClaimsByStatusFlow(context, sc);
+                    break;
+                case "2":
+                    ClaimConsole.filterClaimsByDateRangeFlow(context, sc);
+                    break;
+                case "3":
+                    ClaimConsole.filterClaimsByFamilyFlow(context, sc);
+                    break;
+                case "4":
+                    back = true;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please choose between 1 and 4.");
             }
         }
     }

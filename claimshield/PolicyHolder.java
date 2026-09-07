@@ -1,6 +1,7 @@
 package claimshield;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Nguyen Ngoc Quang Dang - S4113887
@@ -10,7 +11,7 @@ import java.util.ArrayList;
  * zero or more associated dependents.
  */
 public class PolicyHolder extends Customer {
-    private ArrayList<Dependent> dependents;
+    private List<Dependent> dependents;
 
     /**
      * Constructs a new PolicyHolder with complete customer details, linked
@@ -66,9 +67,9 @@ public class PolicyHolder extends Customer {
     /**
      * Returns a copy of the list of dependents linked to this policyholder.
      *
-     * @return an ArrayList containing the dependents
+     * @return a List containing the dependents
      */
-    public ArrayList<Dependent> getDependents() {
+    public List<Dependent> getDependents() {
         return new ArrayList<>(dependents);
     }
 
@@ -116,7 +117,7 @@ public class PolicyHolder extends Customer {
      *
      * @param dependents the list of dependents to set
      */
-    public void setDependents(ArrayList<Dependent> dependents) {
+    public void setDependents(List<Dependent> dependents) {
         this.dependents = (dependents != null) ? new ArrayList<>(dependents) : new ArrayList<>();
     }
 

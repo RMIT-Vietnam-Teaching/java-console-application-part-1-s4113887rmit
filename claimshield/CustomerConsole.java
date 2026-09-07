@@ -370,7 +370,7 @@ final class CustomerConsole {
      * @param sc      the active console scanner
      */
 
-    private static void viewCustomerByIdFlow(AppContext context, Scanner sc) {
+    static void viewCustomerByIdFlow(AppContext context, Scanner sc) {
         System.out.println("\n--- View Customer by ID ---");
         System.out.print("Enter Customer ID: ");
         String id = ConsoleSupport.readLine(sc).trim();

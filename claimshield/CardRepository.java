@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -200,9 +201,10 @@ public class CardRepository implements CardManageable {
                     continue;
                 }
 
-                String[] parts = line.split(",");
+                String[] parts = line.split(",", -1);
                 if (parts.length != 4) {
-                    System.out.println("Skipping invalid card line: " + line);
+                    System.out.println("[WARNING] Skipping invalid card line: '" + line
+                            + "' -> Reason: Expected 4 columns (cardNumber,cardHolderId,policyOwnerId,expirationDate), got " + parts.length + ".");
                     continue;
                 }
 
@@ -212,22 +214,38 @@ public class CardRepository implements CardManageable {
                     String policyOwnerId = parts[2].trim();
                     LocalDateTime expirationDate = LocalDateTime.parse(parts[3].trim());
 
+                    if (!Validator.isValidCardNumber(cardNumber)) {
+                        System.out.println("[WARNING] Skipping invalid card line: '" + line
+                                + "' -> Reason: Card number '" + cardNumber + "' must be exactly 10 digits.");
+                        continue;
+                    }
+                    if (!Validator.isValidCustomerId(cardHolderId)) {
+                        System.out.println("[WARNING] Skipping invalid card line: '" + line
+                                + "' -> Reason: Card holder ID '" + cardHolderId + "' does not match format c-XXXXXXX.");
+                        continue;
+                    }
+                    if (!Validator.isValidCustomerId(policyOwnerId)) {
+                        System.out.println("[WARNING] Skipping invalid card line: '" + line
+                                + "' -> Reason: Policy owner ID '" + policyOwnerId + "' does not match format c-XXXXXXX.");
+                        continue;
+                    }
+                    if (getById(cardNumber) != null) {
+                        System.out.println("[WARNING] Skipping invalid card line: '" + line
+                                + "' -> Reason: Duplicate card number '" + cardNumber + "'.");
+                        continue;
+                    }
+
                     InsuranceCard card = new InsuranceCard(
                             cardNumber,
                             cardHolderId,
                             policyOwnerId,
                             expirationDate);
-
-                    if (!Validator.isValidCardNumber(cardNumber)
-                            || !Validator.isValidCustomerId(cardHolderId)
-                            || !Validator.isValidCustomerId(policyOwnerId)
-                            || getById(cardNumber) != null) {
-                        System.out.println("Skipping invalid card line: " + line);
-                    } else {
-                        cards.add(card);
-                    }
+                    cards.add(card);
+                } catch (DateTimeParseException e) {
+                    System.out.println("[WARNING] Skipping invalid card line: '" + line
+                            + "' -> Reason: Invalid expiration date format: " + e.getMessage());
                 } catch (Exception e) {
-                    System.out.println("Skipping invalid card line: " + line + " (" + e.getMessage() + ")");
+                    System.out.println("[WARNING] Skipping invalid card line: '" + line + "' -> Reason: " + e.getMessage());
                 }
             }
         } catch (IOException e) {

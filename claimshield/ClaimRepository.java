@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -46,16 +47,20 @@ public class ClaimRepository implements ClaimManageable {
             return false;
         }
         if (!Validator.isValidClaimId(claim.getId())) {
+            System.out.println("Validation Error: Claim ID must follow format f-XXXXXXXXXX (12 characters, starting with 'f-').");
             return false;
         }
         if (getById(claim.getId()) != null) {
+            System.out.println("Validation Error: A claim with ID " + claim.getId() + " already exists in the system.");
             return false;
         }
         if (customerRepository != null && customerRepository.getById(claim.getInsuredPersonId()) == null) {
+            System.out.println("Validation Error: Insured customer with ID " + claim.getInsuredPersonId() + " does not exist.");
             return false;
         }
         InsuranceCard card = (cardRepository != null) ? cardRepository.getById(claim.getCardNumber()) : null;
         if (cardRepository != null && card == null) {
+            System.out.println("Validation Error: Insurance card " + claim.getCardNumber() + " does not exist.");
             return false;
         }
         if (card != null && !card.getCardHolderId().equals(claim.getInsuredPersonId())) {
@@ -65,9 +70,15 @@ public class ClaimRepository implements ClaimManageable {
             return false;
         }
         if (!Validator.isPositiveAmount(claim.getClaimAmount())) {
+            System.out.println("Validation Error: Claim amount must be strictly greater than zero.");
             return false;
         }
         if (!Validator.isValidStatus(claim.getStatus())) {
+            System.out.println("Validation Error: Invalid claim status: " + claim.getStatus());
+            return false;
+        }
+        if (claim.getClaimDate() == null || claim.getExamDate() == null) {
+            System.out.println("Validation Error: Claim date and exam date cannot be null.");
             return false;
         }
         if (claim.getExamDate().isAfter(claim.getClaimDate())) {
@@ -206,23 +217,28 @@ public class ClaimRepository implements ClaimManageable {
     }
 
     /**
-     * Adds a document to a claim after validating the document name.
+     * Adds a document to a claim after validating the document name and claim state.
      *
      * @param claimId      the ID of the claim
      * @param documentName the document file name
-     * @return true if added successfully, false if validation fails
+     * @return true if added successfully, false if claim not found
+     * @throws InvalidStatusTransitionException if the claim is already marked DONE (immutable)
+     * @throws InvalidDocumentNameException     if the document name does not follow ClaimId_CardNumber_DocName.pdf
      */
-    public boolean addDocument(String claimId, String documentName) {
+    public boolean addDocument(String claimId, String documentName)
+            throws InvalidStatusTransitionException, InvalidDocumentNameException {
         Claim claim = getById(claimId);
         if (claim == null) {
             return false;
         }
         if (claim.getStatus() == ClaimStatus.DONE) {
-            System.out.println("Cannot add document to claim " + claimId + ": Claim is marked DONE and is immutable.");
-            return false;
+            throw new InvalidStatusTransitionException(
+                    "Cannot add document to claim " + claimId + ": Claim is marked DONE and is immutable.");
         }
         if (!Validator.isValidDocumentName(documentName, claim.getId(), claim.getCardNumber())) {
-            return false;
+            throw new InvalidDocumentNameException(
+                    "Document file name '" + documentName + "' does not rigidly match required format: "
+                            + claim.getId() + "_" + claim.getCardNumber() + "_DocName.pdf");
         }
         claim.addDocument(documentName);
         AuditLogger.log(AppContext.getCurrentActorId(), "ADD_DOCUMENT_TO_CLAIM", claimId);
@@ -521,7 +537,8 @@ public class ClaimRepository implements ClaimManageable {
 
                 String[] parts = line.split(",", -1);
                 if (parts.length < 7) {
-                    System.out.println("Skipping invalid claim line: " + line);
+                    System.out.println("[WARNING] Skipping invalid claim line: '" + line
+                            + "' -> Reason: Expected at least 7 columns, but found " + parts.length + ".");
                     continue;
                 }
 
@@ -534,8 +551,25 @@ public class ClaimRepository implements ClaimManageable {
                     double claimAmount = Double.parseDouble(parts[5].trim());
                     String statusStr = parts[6].trim();
                     ClaimStatus status = ClaimStatus.fromString(statusStr);
+
+                    if (!Validator.isValidClaimId(id)) {
+                        System.out.println("[WARNING] Skipping invalid claim line: '" + line
+                                + "' -> Reason: Invalid claim ID format '" + id + "' (must match f-XXXXXXXXXX, 12 characters).");
+                        continue;
+                    }
+                    if (getById(id) != null) {
+                        System.out.println("[WARNING] Skipping invalid claim line: '" + line
+                                + "' -> Reason: Duplicate claim ID '" + id + "'.");
+                        continue;
+                    }
+                    if (!Validator.isPositiveAmount(claimAmount)) {
+                        System.out.println("[WARNING] Skipping invalid claim line: '" + line
+                                + "' -> Reason: Claim amount must be strictly positive (got " + claimAmount + ").");
+                        continue;
+                    }
                     if (status == null) {
-                        System.out.println("Skipping invalid claim line: " + line);
+                        System.out.println("[WARNING] Skipping invalid claim line: '" + line
+                                + "' -> Reason: Invalid claim status '" + statusStr + "' (must be NEW, PROCESSING, or DONE).");
                         continue;
                     }
 
@@ -553,13 +587,6 @@ public class ClaimRepository implements ClaimManageable {
                             status,
                             processedByUserId);
 
-                    if (!Validator.isValidClaimId(claim.getId())
-                            || getById(claim.getId()) != null
-                            || !Validator.isPositiveAmount(claim.getClaimAmount())
-                            || !Validator.isValidStatus(claim.getStatus())) {
-                        System.out.println("Skipping invalid claim line: " + line);
-                        continue;
-                    }
                     claims.add(claim);
 
                     if (parts.length > 7 && !parts[7].trim().isEmpty()) {
@@ -569,12 +596,18 @@ public class ClaimRepository implements ClaimManageable {
                             if (Validator.isValidDocumentName(documentName, claim.getId(), claim.getCardNumber())) {
                                 claim.addDocument(documentName);
                             } else {
-                                System.out.println("Skipping invalid document: " + documentName);
+                                System.out.println("[WARNING] Skipping invalid document '" + documentName
+                                        + "' on claim " + claim.getId()
+                                        + " -> Reason: Must match format " + claim.getId() + "_" + claim.getCardNumber() + "_DocName.pdf");
                             }
                         }
                     }
+                } catch (DateTimeParseException e) {
+                    System.out.println("[WARNING] Skipping invalid claim line: '" + line + "' -> Reason: Invalid date format: " + e.getMessage());
+                } catch (NumberFormatException e) {
+                    System.out.println("[WARNING] Skipping invalid claim line: '" + line + "' -> Reason: Invalid numerical claim amount: " + e.getMessage());
                 } catch (Exception e) {
-                    System.out.println("Skipping invalid claim line: " + line + " (" + e.getMessage() + ")");
+                    System.out.println("[WARNING] Skipping invalid claim line: '" + line + "' -> Reason: " + e.getMessage());
                 }
             }
         } catch (IOException e) {

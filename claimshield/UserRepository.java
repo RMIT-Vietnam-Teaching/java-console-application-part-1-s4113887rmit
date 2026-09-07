@@ -192,7 +192,8 @@ public class UserRepository implements UserManageable {
 
                 String[] parts = line.split(",", -1);
                 if (parts.length < 7) {
-                    System.out.println("Skipping invalid user line: " + line);
+                    System.out.println("[WARNING] Skipping invalid user line: '" + line
+                            + "' -> Reason: Expected at least 7 columns (userId,username,password,fullName,email,role,status), got " + parts.length + ".");
                     continue;
                 }
 
@@ -202,8 +203,41 @@ public class UserRepository implements UserManageable {
                     String password = parts[2].trim();
                     String fullName = parts[3].trim();
                     String email = parts[4].trim();
-                    UserRole role = UserRole.valueOf(parts[5].trim().toUpperCase());
-                    UserStatus status = UserStatus.valueOf(parts[6].trim().toUpperCase());
+
+                    if (!Validator.isValidUserId(userId)) {
+                        System.out.println("[WARNING] Skipping invalid user line: '" + line
+                                + "' -> Reason: User ID '" + userId + "' does not match format u-XXXXXXX (7 digits).");
+                        continue;
+                    }
+                    if (getById(userId) != null) {
+                        System.out.println("[WARNING] Skipping invalid user line: '" + line
+                                + "' -> Reason: Duplicate user ID '" + userId + "'.");
+                        continue;
+                    }
+                    if (getByUsername(username) != null) {
+                        System.out.println("[WARNING] Skipping invalid user line: '" + line
+                                + "' -> Reason: Duplicate username '" + username + "'.");
+                        continue;
+                    }
+
+                    UserRole role;
+                    try {
+                        role = UserRole.valueOf(parts[5].trim().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("[WARNING] Skipping invalid user line: '" + line
+                                + "' -> Reason: Invalid role '" + parts[5] + "' (must be ADMIN, OFFICER, or CUSTOMER).");
+                        continue;
+                    }
+
+                    UserStatus status;
+                    try {
+                        status = UserStatus.valueOf(parts[6].trim().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        System.out.println("[WARNING] Skipping invalid user line: '" + line
+                                + "' -> Reason: Invalid status '" + parts[6] + "' (must be ACTIVE or INACTIVE).");
+                        continue;
+                    }
+
                     String customerId = (parts.length > 7 && !parts[7].trim().isEmpty()) ? parts[7].trim() : null;
 
                     User user = null;
@@ -224,7 +258,7 @@ public class UserRepository implements UserManageable {
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("Skipping invalid user line: " + line + " (" + e.getMessage() + ")");
+                    System.out.println("[WARNING] Skipping invalid user line: '" + line + "' -> Reason: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
