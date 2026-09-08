@@ -280,6 +280,7 @@ interface ClaimManageable extends Manageable<Claim> {
 
 class UserRepository implements UserManageable {
     -users : ArrayList<User>
+    -customerIdLookup : Map<String, User>
     --
     +UserRepository()
     +add(User) : boolean
