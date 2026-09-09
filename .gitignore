@@ -1,4 +1,6 @@
 out/
+bin/
 *.class
 .idea/
-.DS_Storebin/
+.DS_Store
+.vscode/
