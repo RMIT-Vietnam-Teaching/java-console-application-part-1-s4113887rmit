@@ -653,4 +653,16 @@ ClaimConsole    ..>  ConsoleSupport
 CustomerConsole ..>  Validator
 CardConsole     ..>  Validator
 
+note bottom of AdminMenu
+  All associations in this view are 1-to-1:
+  a menu holds one reference to each helper
+  and delegates to it. Every "1" label belongs
+  to the arrow it touches, not to the cluster.
+end note
+
+note bottom of FinancialReportService
+  Report engine - the full definition
+  is in the Service / Persistence view.
+end note
+
 @enduml
